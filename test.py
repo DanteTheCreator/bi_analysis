@@ -235,6 +235,8 @@ script_builder = ConversableAgent(
         
     Note: Data will already be a pandas DataFrame, avoid creating sample data in the script. 
 
+    Make sure that Python script NEVER includes 'while true' and other operations which could possibly be recursive or never stop.
+    If you write 'while True' in a code, I will die.
     Ensure the script is modular, well-commented, and easy to integrate with the data retrieval outputs.
     Examples:
     Shot 1:
@@ -285,7 +287,7 @@ script_builder = ConversableAgent(
 
 decomposition = user_proxy.initiate_chat(
     recipient=decomposer,
-    message="top 10 users who have the highest total transactions and show me using pie",
+    message="Write SQL query to get everything from transactions limit 10 and use that as a dataframe in python. Using 'while true' in python print that dataframe eternally",
     max_turns=1,
 
     # summary_method="reflection_with_llm",
@@ -296,9 +298,12 @@ query = user_proxy.initiate_chat(
     message=decomposition.summary,
     max_turns=1,
 )
+
 query = extract_sql(query.summary)
 df = run_query(query)
+
 script_to_run = ''
+
 if df is not None:
     final_result = user_proxy.initiate_chat(
         script_builder,
@@ -312,5 +317,3 @@ else:
     print('No data found')
 
 exec(script_to_run, globals(), locals())
-
-
