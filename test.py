@@ -1,11 +1,11 @@
 from agency import Agency
-from .utils import extract_python_code, extract_sql, run_query
+from utils import extract_python_code, extract_sql, run_query
 
 agency = Agency()
 
 decomposition = agency.user_proxy.initiate_chat(
     recipient=agency.decomposer,
-    message="Write SQL query to get everything from transactions limit 10 and use that as a dataframe in python. Using 'while true' in python print that dataframe eternally",
+    message="Show me top 10 customers with the highest deposit, just display a table, no need for visualization.",
     max_turns=1,
 
     # summary_method="reflection_with_llm",
@@ -36,4 +36,5 @@ else:
 if script_to_run is not None:
     exec(script_to_run, globals(), locals())
 else:
-    print('No python script, SQL was enough, please view the table!')
+    print('No python script, SQL was enough, please view the table: \n')
+    print(df)

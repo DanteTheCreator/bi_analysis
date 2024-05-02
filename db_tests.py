@@ -52,13 +52,20 @@ def run_query(query: str) -> DataFrame:
 
 
 df = run_query('''
-SELECT customer_id, SUM(trans_val) AS total_transaction_value
-     FROM test_transactions_master_aggregated
-     GROUP BY customer_id
-     ORDER BY total_transaction_value DESC
-     LIMIT 10;
+SELECT
+    table_schema,
+    table_name,
+    column_name,
+    data_type
+FROM
+    information_schema.columns
+WHERE
+    table_schema = 'public'
+ORDER BY
+    table_name, ordinal_position;
+
 ''')
-print(df)
+print(df.head(20))
 
 # mistral = {
 #     "config_list": [

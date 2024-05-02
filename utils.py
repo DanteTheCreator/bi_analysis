@@ -50,7 +50,7 @@ def extract_sql(response_text):
         sql_query = match.group(1).strip()
         return sql_query
     else:
-        return "No SQL query found in the response."
+        return None
 
 
 def extract_python_code(response_text):
@@ -65,4 +65,4 @@ def extract_python_code(response_text):
         python_code = match.group(1).strip()
         return python_code
     else:
-        return "No Python code found in the response."
+        return None
