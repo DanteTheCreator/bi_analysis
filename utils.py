@@ -1,41 +1,42 @@
 from pandas import DataFrame
-from sqlalchemy import create_engine, text
 import pandas as pd
 import re
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.future import select
 
+# Define the base model for the ORM
+Base = declarative_base()
 
-def run_query(query: str) -> DataFrame:
-    engine = create_engine(
-        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
-    )
-    # Connect to the database
-    connection = engine.connect()
+# Database URL
+DATABASE_URL = "postgresql+asyncpg://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
 
-    try:
-        # Placeholder: Assume last message from the chat history is the SQL query
-        safe_sql_query = query  # Ensure this step reflects actual chat output handling
-        # Using `text` to safely handle the SQL command
-        sql_command = text(safe_sql_query)
+# Create an asynchronous engine
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-        # Execute the query and fetch all results
-        result_proxy = connection.execute(sql_command)
-        records = result_proxy.fetchall()
+# Create asynchronous session maker
+AsyncSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+)
 
-        # Convert the results into a DataFrame
-        if records:
-            df = pd.DataFrame(records, columns=result_proxy.keys())  # Create DataFrame with data and headers
-        else:
-            df = None  # Create empty DataFrame with headers
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
-        return df
+async def run_query_async(query: str):
+    async with AsyncSessionLocal() as session:
+        try:
+            result = await session.execute(query)
+            return result.scalars().all()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
 
-    except Exception as e:
-        print("An error occurred:", e)
-
-    finally:
+        finally:
         # Close the connection
-        connection.close()
-        print("Success, database connection is closed")
+            session.close()
+            print("Success, database connection is closed")
 
 
 def extract_sql(response_text):
