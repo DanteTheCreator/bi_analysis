@@ -1,41 +1,34 @@
-from pandas import DataFrame
-import pandas as pd
 import re
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.future import select
-
+import pandas as pd
 # Define the base model for the ORM
-Base = declarative_base()
 
 # Database URL
 DATABASE_URL = "postgresql+asyncpg://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
 
 # Create an asynchronous engine
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_engine(
+        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
+    )
 
-# Create asynchronous session maker
-AsyncSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-)
-
-async def get_db():
-    async with AsyncSessionLocal() as session:
-        yield session
-
-async def run_query_async(query: str):
-    async with AsyncSessionLocal() as session:
-        try:
-            result = await session.execute(query)
-            return result.scalars().all()
+def run_query_sync(query: str):
+    
+    with engine.connect() as conn:
+        try:    
+            result = conn.execute(text(query))
+            # Fetch the results into a DataFrame
+            df = pd.DataFrame(result.fetchall(), columns=result.keys())
+            return df
         except Exception as e:
-            print(f"An error occurred: {e}")
-            return None
+            print("An error occurred:", e)
 
         finally:
-        # Close the connection
-            session.close()
+            # Close the connection
+            conn.close()
             print("Success, database connection is closed")
 
 

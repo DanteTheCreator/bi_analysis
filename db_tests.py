@@ -53,19 +53,19 @@ def run_query(query: str) -> DataFrame:
 
 df = run_query('''
 SELECT
-    table_schema,
-    table_name,
-    column_name,
-    data_type
+    customer_id,
+    COUNT(transaction_id) AS transaction_count,
+    -- Include other columns if needed
+    transaction_date, trans_val, ...
 FROM
-    information_schema.columns
-WHERE
-    table_schema = 'public'
+    public.test_transactions_master_aggregated
+GROUP BY
+    customer_id
 ORDER BY
-    table_name, ordinal_position;
-
+    transaction_count DESC
+LIMIT 10;
 ''')
-print(df.head(20))
+print(df)
 
 # mistral = {
 #     "config_list": [
