@@ -1,11 +1,9 @@
-from fastapi import Query
 from agency import Agency
 from utils import extract_sql, run_query_sync
 import streamlit as st
 import streamlit_pandas as sp
 
 agency = Agency()
-
 
 # Initialize session state variables
 if 'last_response' not in st.session_state:

@@ -1,14 +1,8 @@
 import re
 from sqlalchemy import create_engine, text
 from sqlalchemy import text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.future import select
 import pandas as pd
 # Define the base model for the ORM
-
-# Database URL
-DATABASE_URL = "postgresql+asyncpg://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
 
 # Create an asynchronous engine
 engine = create_engine(

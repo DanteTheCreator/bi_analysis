@@ -1,17 +1,6 @@
-from autogen import GroupChat, GroupChatManager, UserProxyAgent, ConversableAgent
 from pandas import DataFrame
 from sqlalchemy import create_engine, text
 import pandas as pd
-from autogen.coding import LocalCommandLineCodeExecutor
-import tempfile
-
-temp_dir = tempfile.TemporaryDirectory()
-# Create a local command line code executor.
-executor = LocalCommandLineCodeExecutor(
-    timeout=10,  # Timeout for each code execution in seconds.
-    work_dir=temp_dir.name,  # Use the temporary directory to store the code files.
-)
-
 
 def run_query(query: str) -> DataFrame:
     engine = create_engine(

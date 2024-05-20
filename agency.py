@@ -1,7 +1,4 @@
 from autogen import UserProxyAgent, ConversableAgent
-# from utils import extract_sql, run_query_async
-# from fastapi import FastAPI, HTTPException, Query
-
 
 class Agency:
     def __init__(self,):
