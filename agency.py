@@ -8,9 +8,9 @@ class Agency:
         self.llm_config = {
             "config_list": [
                 {
-                    "model": "gpt-3.5-turbo",
-                    "base_url": "https://api.openai.com/v1/",
-                    "api_key": "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",
+                    "model": "TheBloke/Mistral-7B-Instruct-v0.1-GGUF/mistral-7b-instruct-v0.1.Q8_0.gguf",
+                    "base_url": "http://localhost:1234/v1",
+                    "api_key": "lm-studio",
                 },
 
             ],
@@ -164,17 +164,3 @@ class Agency:
 
 
 
-
-
-# self.llm_config = {
-#             "config_list": [
-#                 {
-#                     "model": "gpt-3.5-turbo",
-#                     "base_url": "https://api.openai.com/v1/",
-#                     "api_key": "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",
-#                 },
-
-#             ],
-#             "cache_seed": None,  # Disable caching.
-#             "temperature": 0.1
-#         }
