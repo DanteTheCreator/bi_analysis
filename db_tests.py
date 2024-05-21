@@ -42,14 +42,12 @@ def run_query(query: str) -> DataFrame:
 
 df = run_query('''
 SELECT
-    customer_id,
-    COUNT(transaction_id) AS transaction_count,
-    -- Include other columns if needed
-    transaction_date, trans_val, ...
+    t.customer_id,
+    COUNT(t.transaction_id) AS transaction_count
 FROM
-    public.test_transactions_master_aggregated
+    public.test_transactions_master_aggregated t
 GROUP BY
-    customer_id
+    t.customer_id
 ORDER BY
     transaction_count DESC
 LIMIT 10;

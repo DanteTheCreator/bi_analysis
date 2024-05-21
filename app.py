@@ -38,20 +38,6 @@ def check_password():
         st.error("😕 User not known or password incorrect")
     return False
 
-def registration_form():
-    """Display the registration form."""
-    with st.form("Register"):
-        new_username = st.text_input("New Username")
-        new_password = st.text_input("New Password", type="password")
-        if st.form_submit_button("Register"):
-            try:
-                auth_system.register_user(new_username, new_password)
-                st.success("User registered successfully!")
-            except ValueError as e:
-                st.error(str(e))
-
-
-
 if not check_password():
     st.stop()
 
