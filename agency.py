@@ -1,4 +1,7 @@
 from autogen import UserProxyAgent, ConversableAgent
+import tempfile
+from autogen.coding import LocalCommandLineCodeExecutor
+
 
 class Agency:
     def __init__(self,):
@@ -9,19 +12,36 @@ class Agency:
                     "base_url": "http://10.80.17.130:1234/v1",
                     "api_key": "lm-studio",
                 },
- 
+
             ],
             "cache_seed": None,  # Disable caching.
             "temperature": 0
         }
- 
+
         self.user_proxy = UserProxyAgent(
             name="user_proxy",
             llm_config=False,
             code_execution_config=False,
             human_input_mode="NEVER",
         )
- 
+        # Create a temporary directory to store the code files.
+        temp_dir = tempfile.TemporaryDirectory()
+
+        # Create a local command line code executor.
+        self.executor = LocalCommandLineCodeExecutor(
+            timeout=10,  # Timeout for each code execution in seconds.
+            # Use the temporary directory to store the code files.
+            work_dir=temp_dir.name,
+        )
+        self.code_executor_agent = ConversableAgent(
+            "code_executor_agent",
+            llm_config=False,  # Turn off LLM for this agent.
+            # Use the local command line code executor.
+            code_execution_config={"executor": self.executor},
+            # Always take human input for this agent for safety.
+            human_input_mode="ALWAYS",
+        )
+        
         self.decomposer = ConversableAgent(
             name="Decomposer",
             human_input_mode='NEVER',
@@ -57,7 +77,7 @@ class Agency:
     """,
             llm_config=self.llm_config,
         )
- 
+
         self.query_builder = ConversableAgent(
             name="query_builder",
             description="builds SQL query",
@@ -157,25 +177,23 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             """,
             llm_config=self.llm_config,
         )
-        
-        # self.script_builder = ConversableAgent(
-        #     name="script_builder",
-        #     description="builds python script",
-        #     llm_config=self.llm_config,
-        #     human_input_mode="NEVER",
-        #     code_execution_config=False,
-        #     system_message=""" 
-        #     You are an expert data scientist who codes in Python. Upon user request, write python script to transform df or create visualizations. 
-        #     Assume that variable 'df' will be passed in automatically. Avoid creating or renaming variables, start with 'df', transform it according to the decompositor's explanation.
+
+        self.script_builder = ConversableAgent(
+            name="script_builder",
+            description="builds python script",
+            llm_config=self.llm_config,
+            human_input_mode="NEVER",
+            code_execution_config=False,
+            system_message=""" 
+            You are an expert data scientist who codes in Python. Upon user request, write python script to transform df or create visualizations. 
+            Assume that variable 'df' will be passed in automatically. Avoid creating or renaming variables, start with 'df', transform it according to the decompositor's explanation.
+                           
+            Note: Data will already be a pandas DataFrame, avoid creating sample data in the script. Avoid leaving code half-done, avoid expecting me to fill in the code. Provide full
+            code that works, only assume you have df from the start.
             
-        #     Decomposer will describe the task well and tell you what to do. After 'Python Instructions:' or 'Post processing Instructions:' you will see your task.
-                
-        #     Note: Data will already be a pandas DataFrame, avoid creating sample data in the script. 
+            ALWAYS return df, even if you have to make additional plots, ALWAYS return df so that we can at least show the table.
             
             
-        # """,
+        """,
 
-        # )
-
-
-
+        )

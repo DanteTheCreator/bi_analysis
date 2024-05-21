@@ -41,15 +41,11 @@ def run_query(query: str) -> DataFrame:
 
 
 df = run_query('''
-SELECT
-    t.customer_id,
-    COUNT(t.transaction_id) AS transaction_count
-FROM
-    public.test_transactions_master_aggregated t
-GROUP BY
-    t.customer_id
-ORDER BY
-    transaction_count DESC
+SELECT customer_id, SUM(trans_val) AS total_deposits
+FROM public.test_transactions_master_aggregated
+WHERE status = 'Deposit'
+GROUP BY customer_id
+ORDER BY total_deposits DESC
 LIMIT 10;
 ''')
 print(df)

@@ -27,7 +27,7 @@ def run_query_sync(query: str):
 
 
 def extract_sql(response_text):
-    # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
+   # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
     pattern = r"```sql\s(.*?)```"
 
     # Search for the pattern using DOTALL flag to match across multiple lines
@@ -41,9 +41,10 @@ def extract_sql(response_text):
         return None
 
 
+
 def extract_python_code(response_text):
     # Define a pattern that matches Python code enclosed in ```python ``` format.
-    pattern = r"```python\s(.*?)```"
+    pattern = r"```Python\s(.*?)```"
 
     # Search for the pattern using DOTALL flag to match across multiple lines
     match = re.search(pattern, response_text, re.DOTALL)
