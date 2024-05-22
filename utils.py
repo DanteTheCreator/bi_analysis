@@ -38,7 +38,7 @@ def run_query_new(query):
 
 
 
-def run_query_sync(query: str):
+def run_query_old(query: str):
     
     with engine.connect() as conn:
         try:    
@@ -54,7 +54,6 @@ def run_query_sync(query: str):
             conn.close()
             print("Success, database connection is closed")
 
-
 def extract_sql(response_text):
    # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
     pattern = r"```sql\s(.*?)```"
@@ -68,8 +67,6 @@ def extract_sql(response_text):
         return sql_query
     else:
         return None
-
-
 
 def extract_python_code(response_text):
     # Define a pattern that matches Python code enclosed in ```python ``` format.
@@ -86,4 +83,3 @@ def extract_python_code(response_text):
         return None
 
 
-run_query_new('SELECT 1')
