@@ -36,8 +36,6 @@ def run_query_new(query):
         # The connection will automatically close when the client object is deleted or goes out of scope
         print("Connection closed")
 
-
-
 def run_query_old(query: str):
     
     with engine.connect() as conn:

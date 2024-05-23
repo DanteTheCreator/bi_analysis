@@ -17,6 +17,19 @@ class Agency:
             "cache_seed": None,  # Disable caching.
             "temperature": 0
         }
+        
+        self.gpt_config = {
+            "config_list": [
+                {
+                    "model": "GPT-4o",
+                    "base_url": "https://api.openai.com/v1.",
+                    "api_key": "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",
+                },
+
+            ],
+            "cache_seed": None,  # Disable caching.
+            "temperature": 0
+        }
 
         self.user_proxy = UserProxyAgent(
             name="user_proxy",
@@ -75,7 +88,7 @@ class Agency:
                                 7         wwon));
     
     """,
-            llm_config=self.llm_config,
+            llm_config=self.gpt_config,
         )
 
         self.query_builder = ConversableAgent(
@@ -112,44 +125,38 @@ Withdrawals
 Won
 wwon
 Provide a single clean SQL query in this format:
- 
-sql
-Copy code
-HERE
-Please write the SQL between sql HERE . Avoid giving extra suggestions. Provide pure SQL like in the examples. Ensure proper error handling by avoiding the use of aliases in the WHERE clause or any part of the query before they are fully defined in the SELECT clause.
+```sql [code here]``` 
+
+Avoid giving extra suggestions. Provide pure SQL like in the examples. 
+Ensure proper error handling by avoiding the use of aliases in the WHERE 
+clause or any part of the query before they are fully defined in the SELECT clause.
  
 Examples:
- 
-sql
-Copy code
-SELECT * FROM public.test_transactions_master_aggregated;
+```sql
+SELECT * FROM public.test_transactions_master_aggregated;```
 Explanation: This query retrieves all columns and all rows from the test_transactions_master_aggregated table. It's the simplest form of a SELECT statement and is used to display the entire content of a table.
  
-sql
-Copy code
+```sql
 SELECT transaction_id, customer_id, trans_val, balance
 FROM public.test_transactions_master_aggregated
-WHERE balance > 1000.0;
+WHERE balance > 1000.0;```
 Explanation: This query selects specific columns (transaction_id, customer_id, trans_val, balance) from the table, but only where the balance is greater than 1000.0. This is useful for filtering records based on specific criteria.
  
-sql
-Copy code
+```sql
 SELECT customer_id, COUNT(*) AS number_of_transactions, SUM(trans_val) AS total_spent
 FROM public.test_transactions_master_aggregated
 GROUP BY customer_id
-HAVING SUM(trans_val) > 5000;
+HAVING SUM(trans_val) > 5000;```
 Explanation: This query groups the data by customer_id and calculates two things: the total number of transactions and the total transaction value (trans_val) per customer. The HAVING clause further filters these groups to include only those customers whose total spent is greater than 5000. This is useful for summarizing data by a certain attribute.
  
-sql
-Copy code
+```sql
 SELECT transaction_id, transaction_date, trans_val
 FROM public.test_transactions_master_aggregated
 WHERE transaction_date BETWEEN '2024-01-01' AND '2024-12-31'
-ORDER BY transaction_date DESC;
+ORDER BY transaction_date DESC;```
 Explanation: This query fetches the transaction ID, date, and value of transactions that occurred within the year 2024. The results are sorted by the transaction_date in descending order, so the most recent transactions appear first. This type of query is useful for analyzing data within a specific time frame.
  
-sql
-Copy code
+```sql
 SELECT transaction_id, trans_val, customer_id
 FROM public.test_transactions_master_aggregated
 WHERE customer_id IN (
@@ -159,15 +166,14 @@ WHERE customer_id IN (
     GROUP BY customer_id
     HAVING COUNT(transaction_id) > 5
 )
-ORDER BY trans_val DESC;
+ORDER BY trans_val DESC;```
 Explanation: This query selects transactions from customers who have more than five transactions exceeding a value of 1000. It uses a subquery in the WHERE clause to first identify those customer_ids meeting the criteria, and then fetches data from the main table for those customers. This is a more complex SQL operation that involves nested querying, useful for filtering data based on aggregate properties.
  
-sql
-Copy code
+```sql
 SELECT transaction_id, transaction_date, customer_id, trans_val,
     SUM(trans_val) OVER (PARTITION BY customer_id ORDER BY transaction_date) AS running_total
 FROM public.test_transactions_master_aggregated
-ORDER BY customer_id, transaction_date;
+ORDER BY customer_id, transaction_date;```
 Explanation: This query calculates a running total of transaction values for each customer, ordered by the transaction date. It uses a window function (SUM() OVER) which is a powerful tool for performing calculations across sets of rows that are related to the current row.
  
 Final Note:
@@ -175,7 +181,7 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
  
  
             """,
-            llm_config=self.llm_config,
+            llm_config=self.gpt_config,
         )
 
         self.script_builder = ConversableAgent(
