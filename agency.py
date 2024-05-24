@@ -1,7 +1,4 @@
 from autogen import UserProxyAgent, ConversableAgent
-import tempfile
-from autogen.coding import LocalCommandLineCodeExecutor
-
 
 class Agency:
     def __init__(self,):
@@ -37,25 +34,8 @@ class Agency:
             code_execution_config=False,
             human_input_mode="NEVER",
         )
-        # Create a temporary directory to store the code files.
-        temp_dir = tempfile.TemporaryDirectory()
 
-        # Create a local command line code executor.
-        self.executor = LocalCommandLineCodeExecutor(
-            timeout=10,  # Timeout for each code execution in seconds.
-            # Use the temporary directory to store the code files.
-            work_dir=temp_dir.name,
-        )
-        self.code_executor_agent = ConversableAgent(
-            "code_executor_agent",
-            llm_config=False,  # Turn off LLM for this agent.
-            # Use the local command line code executor.
-            code_execution_config={"executor": self.executor},
-            # Always take human input for this agent for safety.
-            human_input_mode="ALWAYS",
-        )
-        
-        self.decomposer = ConversableAgent(
+        self.decomposer_for_queries = ConversableAgent(
             name="Decomposer",
             human_input_mode='NEVER',
             system_message="""
@@ -184,6 +164,33 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             llm_config=self.gpt_config,
         )
 
+        self.decomposer_for_scripts = self.script_builder = ConversableAgent(
+            name="decomposer_for_scripts",
+            description="decomposes tasks",
+            llm_config=self.llm_config,
+            human_input_mode="NEVER",
+            code_execution_config=False,
+            system_message="""
+            Based on user's prompt:
+            Decide which dataframes you need:
+            Note that: Script_builder will already have full list of dataframes. Your job is to figure out which dataframes
+            script_builder should use from the list named 'dfs'.
+            Define appropriate variables, based on the list of dataframe heads, passed in by the user.
+            
+
+            2. Decide the <final output>: pd.dataframe() or plt.figure.Figure?
+            
+            IF <final output> is a dataframe, write instruction for script_builder to:
+            import necessary libraries
+            
+            Which dataframes should the script_builder modify and what kind of transformations or aggregations are needed;
+            
+            IF <final output> is a figure, write instruction for data scientist to:
+            import necessary libraries
+            build a complete figure from the data.
+            Avoid giving python examples, just provide instructions.
+            """)
+        
         self.script_builder = ConversableAgent(
             name="script_builder",
             description="builds python script",
@@ -192,25 +199,45 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             code_execution_config=False,
             system_message=""" 
             You are an expert data scientist who codes in Python. 
-            Upon user request, write python script to prepare and show data from the list of dataframes called 'dfs'.
+            Upon decomposers explanation, write python script to prepare and show data from the list of dataframes called 'dfs'.
             Assume that variable 'dfs' will be passed in automatically.
             Avoid creating or renaming variables.
-            After imports initialize 'global dfs' 
+            After imports initialize 'global dfs, df' 
             which will automatically pull in that variable, after that you can use [dfs] in code.
+            Decomposer will tell you which dfs you should use from the list.
+            After 'global dfs, df', define the needed dataframes and apply relevant values from dfs list;
                               
             Note: avoid creating sample data in the script. Avoid leaving code half-done, avoid expecting me to fill in the code. Provide full
             code that works.
             
-            ALWAYS provide python like this [```python (code here) ```];
-            DO NOT assign anything to dfs, that list will be automatically passed in, it does not need definition from your side.
+            ALWAYS provide python like this ```python (code here) ```;
+            DO NOT assign anything to 'dfs', that list will be automatically passed in, it does not need definition from your side.
 
-            If you are visualizing, return a constructed Figure, whcih should have transparent background, plot should be 'green', and titles and labels should be white color.
-            NEVER return df, avoid returning anything, NEVER use print, Instead you will apply it to df.
-            Give back clear Python and instead of a return statement, include df = NEEDED DATA. If user is asking to return or show them something, just apply it to df.
+            If user asks you to create a visualization such as a plot, construct a complete matplotlib Figure, which should have transparent backgroun
+            with green figures and white text.
+            Assign completed Figure to df. 
+            General Example, how to provide
+            ```python
+            fig, ax = plt.subplots()
+
+            # Plot data
+            ax.plot(t, s)
+
+            # Set the labels and title
+            ax.set(xlabel='time (s)', ylabel='voltage (mV)',
+                title='Example of a simple line plot')
+            ax.legend()
+            df = fig
+            ```
             
+            
+            NEVER return df, avoid returning anything, NEVER use print, Instead you will apply it to df. 
+            The object that would be  returned by this function, just assign it to df;
             End code with:
             
-            df = [user's desired data] 
+            df = 'HERE assign needed data instead of returning it ' (dataframe or Figure)
+            
+
         """,
 
         )
