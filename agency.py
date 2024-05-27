@@ -173,11 +173,13 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             system_message="""
             Based on user's prompt:
             Decide which dataframes you need:
-            Note that: Script_builder will already have full list of dataframes. Your job is to figure out which dataframes
-            script_builder should use from the list named 'dfs'.
+            Note that: Script_builder will already have full list of dataframes.
+            Your job is to:
+            1. figure out which dataframe script_builder MUST use from the list named 'dfs'. CHOOSE ONE: dfs[0], dfs[1], etc.YOU are the one who tells
+            script_builder which dataframes to use. NEVER give ambiguous instructions.
+            HOW TO choose DATAFRAME? based on user *request* and based on the *column names* in the dataframes.
             Define appropriate variables, based on the list of dataframe heads, passed in by the user.
-            
-
+        
             2. Decide the <final output>: pd.dataframe() or plt.figure.Figure?
             
             IF <final output> is a dataframe, write instruction for script_builder to:
@@ -186,9 +188,11 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             Which dataframes should the script_builder modify and what kind of transformations or aggregations are needed;
             
             IF <final output> is a figure, write instruction for data scientist to:
-            import necessary libraries
-            build a complete figure from the data.
-            Avoid giving python examples, just provide instructions.
+            import the libraries
+            build a complete figure
+            NEVER provide actual python snippets or code, ONLY provide verbal instructions.
+            INST: 1. name of the CHOSEN table (dfs[NUMBER]), 2. name of the CHOSEN column(s), 3. * aggregation(s), * transformation(s), OR visualization(s).
+            your instructions go here [INST HERE]
             """)
         
         self.script_builder = ConversableAgent(
@@ -198,44 +202,79 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             human_input_mode="NEVER",
             code_execution_config=False,
             system_message=""" 
-            You are an expert data scientist who codes in Python. 
-            Upon decomposers explanation, write python script to prepare and show data from the list of dataframes called 'dfs'.
+            You are an expert data scientist who codes in Python.
+            Upon decomposers explanation which is inside [INST ], write python script to prepare and show data from the list of dataframes called 'dfs'.
             Assume that variable 'dfs' will be passed in automatically.
             Avoid creating or renaming variables.
-            After imports initialize 'global dfs, df' 
+            After imports initialize 'global dfs, df'
             which will automatically pull in that variable, after that you can use [dfs] in code.
             Decomposer will tell you which dfs you should use from the list.
             After 'global dfs, df', define the needed dataframes and apply relevant values from dfs list;
                               
             Note: avoid creating sample data in the script. Avoid leaving code half-done, avoid expecting me to fill in the code. Provide full
             code that works.
-            
+            NEVER! say plt.gcf() plt.gca() or plt.show() or plt.savefig() or plt.close() NEVER!
             ALWAYS provide python like this ```python (code here) ```;
             DO NOT assign anything to 'dfs', that list will be automatically passed in, it does not need definition from your side.
-
-            If user asks you to create a visualization such as a plot, construct a complete matplotlib Figure, which should have transparent backgroun
-            with green figures and white text.
-            Assign completed Figure to df. 
+ 
+            IF user asks you to create a visualization such as a plot, assign completed Figure to df.
+            
             General Example, how to provide
             ```python
             fig, ax = plt.subplots()
-
+ 
             # Plot data
-            ax.plot(t, s)
-
+            ax.plot(t, s, color='green')
+ 
             # Set the labels and title
             ax.set(xlabel='time (s)', ylabel='voltage (mV)',
                 title='Example of a simple line plot')
-            ax.legend()
+ 
+            # Update label and title colors to white
+            ax.title.set_color('white')
+            ax.xaxis.label.set_color('white')
+            ax.yaxis.label.set_color('white')
+ 
+            # Update tick colors to white
+            ax.tick_params(colors='white')
+            
+            # Set legend with white text
+            ax.legend(['line'], facecolor='none', edgecolor='white', labelcolor='white')
+            
+            # Set transparent background
+            fig.patch.set_alpha(0)
+            ax.patch.set_alpha(0)
+            
             df = fig
             ```
-            
-            
-            NEVER return df, avoid returning anything, NEVER use print, Instead you will apply it to df. 
+            another example for dataframes:
+            ```
+python
+import pandas as pd
+ 
+# Initialize global dfs, df variables
+global dfs, df
+ 
+# Choose the first dataframe from the list 'dfs'
+df = dfs[0]
+ 
+# Define the transformation needed: Create a new column 'NGR' by subtracting 'total_won's from 'total_bets'
+df['NGR'] = df['total_bets'] - df['total_wons']
+ 
+df = df
+```
+            ALWAYS follow instructions from decomposer.
+            ALWAYS understand very well whether final output should be a dataframe or a figure.
+            NEVER write return df, avoid returning anything, NEVER use print, Instead you will apply it to df.
+            NEVER plt.show()
+            ALWAYS output ONLY ONE figure or dataframe.
+            IF asked: ALWAYS construct a complete matplotlib Figure, which should have transparent background
+            with green figures and white text.
             The object that would be  returned by this function, just assign it to df;
-            End code with:
             
-            df = 'HERE assign needed data instead of returning it ' (dataframe or Figure)
+            for TABLES: END code with: df = df
+            
+            for plots and figures: END code with: df = fig
             
 
         """,
