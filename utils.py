@@ -48,7 +48,6 @@ def convert_df_to_arrow_compatible(df):
             df[col] = df[col].astype('datetime64[ns]')
     return df
  
-
 def display_sidebar_info(data):
     with st.sidebar:
         st.header("Basic Information")
@@ -68,7 +67,7 @@ def display_sidebar_info(data):
  
         st.header("Data Distribution")
         numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
-        categorical_columns = data.select_dtypes(include=['string']).columns
+        categorical_columns = data.select_dtypes(include=['object', 'string']).columns
  
         for col in numeric_columns:
             if 'id' in col.lower():
@@ -82,7 +81,7 @@ def display_sidebar_info(data):
  
         for col in categorical_columns:
             fig, ax = plt.subplots()
-            sns.countplot(data[col], color='#00FF00')
+            sns.countplot(x=data[col], color='#00FF00')
             ax.set_title(f'Distribution of {col}')
             ax.set_xlabel(col)
             ax.set_ylabel('Count')
@@ -90,18 +89,19 @@ def display_sidebar_info(data):
  
         st.header("Correlation Heatmap")
         fig, ax = plt.subplots(figsize=(4, 3))
-        corr = data.corr()
+        numeric_data = data.select_dtypes(include=['float64', 'int64'])
+        corr = numeric_data.corr()
         sns.heatmap(corr, ax=ax, annot=True, cmap='Greens')
         ax.set_title('Correlation Heatmap')
         st.pyplot(fig)
- 
+
 def display_dynamic_sidebar_info(data):
     with st.sidebar:
         st.header("Outlier Analysis")
         numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
-
+ 
         plt.style.use('dark_background')  # Applying dark theme to all plots
-
+ 
         for col in numeric_columns:
             if 'id' in col.lower():
                 continue  # Skip ID columns
@@ -110,18 +110,18 @@ def display_dynamic_sidebar_info(data):
             ax.set_title(f'Box plot of {col}')
             ax.set_xlabel(col)
             st.pyplot(fig)
-
+ 
         st.header("Trend Analysis")
         datetime_columns = data.select_dtypes(include=['datetime64[ns]']).columns
-
+ 
         for col in datetime_columns:
             fig, ax = plt.subplots()
             data.set_index(col)[numeric_columns].plot(ax=ax, color='#00FF00')
             ax.set_title(f'Time Series of {col}')
             st.pyplot(fig)
-
+ 
         st.header("Comparative Analysis")
-        categorical_columns = data.select_dtypes(include=['string']).columns
+        categorical_columns = data.select_dtypes(include=['object', 'string']).columns
         for cat_col in categorical_columns:
             for num_col in numeric_columns:
                 fig, ax = plt.subplots()
@@ -130,7 +130,7 @@ def display_dynamic_sidebar_info(data):
                 ax.set_xlabel(cat_col)
                 ax.set_ylabel(num_col)
                 st.pyplot(fig)
-    
+
 def write_report(data):
     with open("data_report.txt", "w") as f:
         f.write("Data Report\n")
