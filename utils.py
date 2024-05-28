@@ -1,58 +1,8 @@
 import re
-from sqlalchemy import create_engine, text
-from sqlalchemy import text
 import pandas as pd
-import clickhouse_connect
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
-from auth import SimpleAuth
-
-# Create an asynchronous engine
-engine = create_engine(
-        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
-    )
-
-def run_query_new(query):
-     # Configure the connection parameters
-    config = {
-        'host': '10.4.21.11',
-        'port': '8123',  # default ClickHouse port
-        'username': 'default',
-        'password': 'asdASD123',
-        'database': 'default'
-    }
-
-    try:
-        # Establish the connection using the config
-        client = clickhouse_connect.get_client(**config)
-        # Execute the query and fetch results
-        result = client.query(query)
-        # Convert the result into a DataFrame
-        df = pd.DataFrame(result.result_rows, columns=result.column_names)
-        return df
-    except Exception as e:
-        print("An error occurred:", e)
-        return None
-    finally:
-        # The connection will automatically close when the client object is deleted or goes out of scope
-        print("Connection closed")
-
-def run_query_old(query: str):
-    
-    with engine.connect() as conn:
-        try:    
-            result = conn.execute(text(query))
-            # Fetch the results into a DataFrame
-            df = pd.DataFrame(result.fetchall(), columns=result.keys())
-            return df
-        except Exception as e:
-            print("An error occurred:", e)
-
-        finally:
-            # Close the connection
-            conn.close()
-            print("Success, database connection is closed")
 
 def extract_sql(response_text):
    # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
@@ -98,37 +48,6 @@ def convert_df_to_arrow_compatible(df):
             df[col] = df[col].astype('datetime64[ns]')
     return df
  
-def check_password():
-    """Returns `True` if the user had a correct password."""
-    auth_system = SimpleAuth(
-    'postgresql://postgres:postgres@10.4.21.11:5432/postgres')
-    def login_form():
-        """Form with widgets to collect user information"""
-        with st.form("Credentials"):
-            st.text_input("Username", key="username")
-            st.text_input("Password", type="password", key="password")
-            st.form_submit_button("Log in", on_click=password_entered)
- 
-    def password_entered():
-        """Checks whether a password entered by the user is correct."""
-        username = st.session_state["username"]
-        password = st.session_state["password"]
-        if auth_system.verify_user(username, password):
-            st.session_state["auth"] = True
-            # Don't store the username or password.
-            del st.session_state["password"]
-            del st.session_state["username"]
-        else:
-            st.session_state["auth"] = False
-            st.error("😕 User not known or password incorrect")
- 
-    # Return True if the username + password is validated.
-    if st.session_state.get("auth", False):
-        return True
- 
-    # Show inputs for username + password.
-    login_form()
-    return False
 
 def display_sidebar_info(data):
     with st.sidebar:
