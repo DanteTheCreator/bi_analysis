@@ -11,54 +11,54 @@ if 'dataframes' not in st.session_state:
 if 'messages' not in st.session_state:
     st.session_state['messages'] = [
         {"role": "assistant", "content": "How can I help you?"}]
+if 'fetched' not in st.session_state:
+    st.session_state['fetched'] = False
 
 agency = Agency()
 global_context = globals()
+df = None
 
 
 def get_data(message):
-    with st.spinner('Fetching data...'):
-        decomposition = agency.user_proxy.initiate_chat(
-            recipient=agency.decomposer_for_queries,
-            message=message,
-            max_turns=1,
-        )
-        query = agency.user_proxy.initiate_chat(
-            recipient=agency.query_builder,
-            message=decomposition.summary,
-            max_turns=1,
-        )
-        sql_query = extract_sql(query.summary)
-        if sql_query:
-            query_result = run_query_old(sql_query)
-            if query_result is not None:
-                st.session_state['dataframes'].append(query_result)
-            else:
-                st.session_state['messages'].append(
-                    {'role': 'assistant', 'contonet': "No data found from SQL query."})
+    decomposition = agency.user_proxy.initiate_chat(
+        recipient=agency.decomposer_for_queries,
+        message=message,
+        max_turns=1,
+    )
+    query = agency.user_proxy.initiate_chat(
+        recipient=agency.query_builder,
+        message=decomposition.summary,
+        max_turns=1,
+    )
+    sql_query = extract_sql(query.summary)
+    if sql_query:
+        query_result = run_query_old(sql_query)
+        if query_result is not None:
+            st.session_state['dataframes'].append(query_result)
+        else:
+            st.session_state['messages'].append(
+                {'role': 'assistant', 'contonet': "No data found from SQL query."})
 
 
 if check_password():
-    # Creating the selectbox
-    prompt = st.text_input("Initial data retrieval:")
-
-    if st.button(label="Fetch Data"):
-        st.session_state['messages'] = [
-            {"role": "assistant", "content": "How can I help you?"},
-            {'role': 'user', 'content': prompt}]
-        st.session_state['dataframes'] = [pd.DataFrame(),]
-
-        get_data(prompt)
-        print(st.session_state['dataframes'])
-        st.session_state['dataframes'] = st.session_state['dataframes'][1:]
-        print(st.session_state['dataframes'])
-        st.session_state['messages'].append(
-            {"role": "assistant", "content": st.session_state['dataframes'][0]})
-
     # Accept user input
     if next_prompt := st.chat_input("What is up?"):
-        st.session_state.messages.append(
-            {"role": 'user', "content": next_prompt})
+        while not st.session_state['fetched']:
+            st.session_state['messages'].append(
+                {'role': 'user', 'content': next_prompt})
+            if next_prompt.lower() == 'okay fetch':
+                get_data(next_prompt)
+                st.session_state['dataframes'] = st.session_state['dataframes'][1:]
+                st.session_state['messages'].append(
+                    {"role": "assistant", "content": st.session_state['dataframes'][0]})
+                st.session_state.messages.append(
+                    {"role": 'user', "content": next_prompt})
+                st.session_state['fetched'] = True
+            else:
+                message = agency.user_proxy.initiate_chat(recipient=agency.decomposer_for_queries, max_turns=1, message=''.join([
+                                                          message['content'] for message in st.session_state['messages']])).summary
+                st.session_state['messages'].append(
+                    {'role': 'assistant', 'content': message})
 
         script_instructions = agency.user_proxy.initiate_chat(
             recipient=agency.decomposer_for_scripts,
@@ -90,7 +90,6 @@ if check_password():
         else:
             st.chat_message(message['role'], avatar=avatar_dir).write(
                 message['content'])
-
 
     # Ensure sidebar with initial data is always displayed
     if st.session_state['dataframes'][0].empty == False:
