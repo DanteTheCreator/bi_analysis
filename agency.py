@@ -1,5 +1,6 @@
 from autogen import UserProxyAgent, ConversableAgent
-
+import seaborn as sns
+ 
 class Agency:
     def __init__(self,):
         self.llm_config = {
@@ -9,10 +10,10 @@ class Agency:
                     "base_url": "http://10.80.17.130:1234/v1",
                     "api_key": "lm-studio",
                 },
-
+ 
             ],
             "cache_seed": None,  # Disable caching.
-            "temperature": 0
+            "temperature": 1
         }
         
         self.gpt_config = {
@@ -22,18 +23,19 @@ class Agency:
                     "base_url": "https://api.openai.com/v1",
                     "api_key": "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",
                 },
-
+ 
             ],
             "cache_seed": None,  # Disable caching.
-            "temperature": 0
+            "temperature": 1
         }
-
+ 
         self.user_proxy = UserProxyAgent(
             name="user_proxy",
             llm_config=False,
             code_execution_config=False,
             human_input_mode="NEVER",
         )
+<<<<<<< HEAD
         
         self.talker = ConversableAgent(
             name="talker",
@@ -71,10 +73,14 @@ class Agency:
             llm_config=self.gpt_config,
         )
 
+=======
+ 
+>>>>>>> a3508c5 (test phase)
         self.decomposer_for_queries = ConversableAgent(
             name="Decomposer",
             human_input_mode='NEVER',
             system_message="""
+<<<<<<< HEAD
                         
             Given the talkers description of the data user needs, decompose the task and determine how to query it from database.
             a. Provide detailed instructions for the Query Builder.
@@ -104,103 +110,125 @@ class Agency:
                                 6          Won
                                 7         wwon));
     
+=======
+            Your role is to decompose data retrieval tasks from the ClickHouse database based on user requests. Follow these steps:
+1. Understand the user's request and extract key information.
+2. Identify the relevant tables and fields in the ClickHouse database based on the provided schema.
+3. Break down the task into specific SQL operations (e.g., SELECT, JOIN, WHERE).
+4. Provide clear instructions for the Query Builder to construct the SQL query.
+ 
+SCHEMA:
+- transaction_mapping table: trans_type_id, transactions_name, status, category, sign, provider, customer_id, ngr
+  - Unique values for status: 'Won', 'Bet', 'Bonus', 'Deposit', 'Withdrawals', 'Fee', 'bbet', 'wwon'
+  - Unique values for category: 'Slots', 'Sports', 'Casino', 'Poker', 'P2P', etc.
+  - Unique values for provider: 'Golden Race', 'EGT', 'GameArt', 'NOVA', 'NetEnt', etc.
+- transactions_master table: transaction_id, customer_id, transaction_date, trans_type_id, transaction_status, trans_val, balance.
+  - Unique values for transaction_status: NULL, ''
+ 
+JOINS:
+- Use `trans_type_id` to join `transaction_mapping` and `transactions_master` tables.
+ 
+EXAMPLES OF SQL TASKS:
+1. **Retrieve total deposit amount for each customer for a specific date.**
+   ```sql
+   SELECT tm.customer_id, SUM(tm.trans_val) AS total_deposit
+   FROM transactions_master tm
+   JOIN transaction_mapping tmap ON tm.trans_type_id = tmap.trans_type_id
+   WHERE tmap.status = 'Deposit' AND toDate(tm.transaction_date) = '2023-05-01'
+   GROUP BY tm.customer_id
+   ORDER BY total_deposit DESC;
+Find all transactions of a particular type for a given provider.
+ 
+sql
+Copy code
+SELECT tm.transaction_id, tm.customer_id, tmap.transactions_name, tm.trans_val
+FROM transactions_master tm
+JOIN transaction_mapping tmap ON tm.trans_type_id = tmap.trans_type_id
+WHERE tmap.provider = 'NetEnt' AND tmap.status = 'Bet';
+Identify customers who were active (deposited) in the previous week but churned (not deposited) in the last week.
+ 
+Step 1: Identify customers who deposited in the previous week.
+Step 2: Identify customers who did not deposit in the last week.
+Step 3: Identify churned customers.
+Step 4: Get daily activity for churned customers in the previous week.
+sql
+Copy code
+SELECT tm.customer_id, toDate(tm.transaction_date) as transaction_date, SUM(tm.trans_val) AS total_deposit
+FROM transactions_master tm
+JOIN transaction_mapping tmap ON tm.trans_type_id = tmap.trans_type_id
+WHERE tmap.status = 'Deposit'
+AND toDate(tm.transaction_date) BETWEEN toDate(dateSub(week, 2, today())) AND toDate(dateSub(week, 1, today()))
+AND tm.customer_id IN (
+  SELECT DISTINCT prev_week.customer_id
+  FROM (
+      SELECT DISTINCT tm.customer_id
+      FROM transactions_master tm
+      JOIN transaction_mapping tmap ON tm.trans_type_id = tmap.trans_type_id
+      WHERE tmap.status = 'Deposit'
+      AND toDate(tm.transaction_date) BETWEEN toDate(dateSub(week, 2, today())) AND toDate(dateSub(week, 1, today()))
+  ) AS prev_week
+  LEFT JOIN (
+      SELECT DISTINCT tm.customer_id
+      FROM transactions_master tm
+      JOIN transaction_mapping tmap ON tm.trans_type_id = tmap.trans_type_id
+      WHERE tmap.status = 'Deposit'
+      AND toDate(tm.transaction_date) BETWEEN toDate(dateSub(week, 1, today())) AND toDate(today())
+  ) AS last_week
+  ON prev_week.customer_id = last_week.customer_id
+  WHERE last_week.customer_id IS NULL
+)
+GROUP BY tm.customer_id, transaction_date
+ORDER BY tm.customer_id, transaction_date;
+>>>>>>> a3508c5 (test phase)
     """,
             llm_config=self.gpt_config,
         )
-
+ 
         self.query_builder = ConversableAgent(
             name="query_builder",
             description="builds SQL query",
             human_input_mode='NEVER',
             system_message="""
-           You will receive a task and focus on Database Operations. There will be a detailed plan for building a PostgreSQL query. Given a detailed description of the required data fields, tables, and conditions extracted by the Decomposer, construct a SQL query that accurately retrieves this data from the database. Include:
+           Your role is to construct SQL queries based on the decomposed tasks. Follow these steps:
+1. Receive task details from the Decomposer.
+2. Use the provided information to construct accurate and optimized SQL queries for the ClickHouse database.
+3. Ensure queries are optimized for memory efficiency and speed.
+4. Provide the final SQL query for execution.
  
-Selection of relevant fields.
-Identification of necessary tables and how they join, if applicable.
-Specification of conditions and filters to apply to the data.
-Any sorting or grouping operations that are required.
-Generate clean and efficient SQL code that is ready to be executed to fetch the needed data from this table:
-public.test_transactions_master_aggregated
+SCHEMA:
+- transaction_mapping table: trans_type_id, transactions_name, status, category, sign, provider, customer_id, ngr
+  - Unique values for status: 'Won', 'Bet', 'Bonus', 'Deposit', 'Withdrawals', 'Fee', 'bbet', 'wwon'
+  - Unique values for category: 'Slots', 'Sports', 'Casino', 'Poker', 'P2P', etc.
+  - Unique values for provider: 'Golden Race', 'EGT', 'GameArt', 'NOVA', 'NetEnt', etc.
+- transactions_master table: transaction_id, customer_id, transaction_date, trans_type_id, transaction_status, trans_val, balance.
  
-column_name data_type
-transaction_id  bigint
-customer_id integer
-transaction_date    timestamp with time zone
-trans_val   double precision
-balance double precision
-reference_object    integer
-reference_object_bigint bigint
-status  character varying
-Possible values for status:
+JOINS:
+- Join `transaction_mapping` and `transactions_master` tables using `trans_type_id`.
  
-bbet
-Bet
-Bonus
-Deposit
-Fee
-Withdrawals
-Won
-wwon
-Provide a single clean SQL query in this format:
-```sql [code here]``` 
-
-Avoid giving extra suggestions. Provide pure SQL like in the examples. 
-Ensure proper error handling by avoiding the use of aliases in the WHERE 
-clause or any part of the query before they are fully defined in the SELECT clause.
+Use ClickHouse-Specific Date Functions:
  
-Examples:
-```sql
-SELECT * FROM public.test_transactions_master_aggregated;```
-Explanation: This query retrieves all columns and all rows from the test_transactions_master_aggregated table. It's the simplest form of a SELECT statement and is used to display the entire content of a table.
+Use functions like subtractMonths, subtractDays, etc., for date manipulations.
+Example: WHERE tm.transaction_date BETWEEN subtractMonths(now(), 1) AND now().
+Avoid ORDER BY in CTEs:
  
-```sql
-SELECT transaction_id, customer_id, trans_val, balance
-FROM public.test_transactions_master_aggregated
-WHERE balance > 1000.0;```
-Explanation: This query selects specific columns (transaction_id, customer_id, trans_val, balance) from the table, but only where the balance is greater than 1000.0. This is useful for filtering records based on specific criteria.
+Do not use ORDER BY inside Common Table Expressions (CTEs), especially if the CTE contains GROUP BY.
+Apply ORDER BY in the final query.
+Apply LIMIT in the Final Query:
  
-```sql
-SELECT customer_id, COUNT(*) AS number_of_transactions, SUM(trans_val) AS total_spent
-FROM public.test_transactions_master_aggregated
-GROUP BY customer_id
-HAVING SUM(trans_val) > 5000;```
-Explanation: This query groups the data by customer_id and calculates two things: the total number of transactions and the total transaction value (trans_val) per customer. The HAVING clause further filters these groups to include only those customers whose total spent is greater than 5000. This is useful for summarizing data by a certain attribute.
+Do not use LIMIT inside CTEs. Instead, apply LIMIT in the final query.
+Example: SELECT ... FROM ... ORDER BY ... LIMIT 10.
+Use Correct Functions with Correct Number of Arguments:
  
-```sql
-SELECT transaction_id, transaction_date, trans_val
-FROM public.test_transactions_master_aggregated
-WHERE transaction_date BETWEEN '2024-01-01' AND '2024-12-31'
-ORDER BY transaction_date DESC;```
-Explanation: This query fetches the transaction ID, date, and value of transactions that occurred within the year 2024. The results are sorted by the transaction_date in descending order, so the most recent transactions appear first. This type of query is useful for analyzing data within a specific time frame.
+Ensure functions are used with the correct number of arguments.
+Example: subtractMonths(now(), 1) instead of minus('month', 1, now()).
  
-```sql
-SELECT transaction_id, trans_val, customer_id
-FROM public.test_transactions_master_aggregated
-WHERE customer_id IN (
-    SELECT customer_id
-    FROM public.test_transactions_master_aggregated
-    WHERE trans_val > 1000
-    GROUP BY customer_id
-    HAVING COUNT(transaction_id) > 5
-)
-ORDER BY trans_val DESC;```
-Explanation: This query selects transactions from customers who have more than five transactions exceeding a value of 1000. It uses a subquery in the WHERE clause to first identify those customer_ids meeting the criteria, and then fetches data from the main table for those customers. This is a more complex SQL operation that involves nested querying, useful for filtering data based on aggregate properties.
+your sql code goes sql HERE
  
-```sql
-SELECT transaction_id, transaction_date, customer_id, trans_val,
-    SUM(trans_val) OVER (PARTITION BY customer_id ORDER BY transaction_date) AS running_total
-FROM public.test_transactions_master_aggregated
-ORDER BY customer_id, transaction_date;```
-Explanation: This query calculates a running total of transaction values for each customer, ordered by the transaction date. It uses a window function (SUM() OVER) which is a powerful tool for performing calculations across sets of rows that are related to the current row.
- 
-Final Note:
-Ensure that the SQL query is clean and efficient, accurately reflecting the user’s requirements. Avoid using aliases in the WHERE clause or any conditions before they are fully defined in the SELECT clause. Handle errors by ensuring that all column references are accurate and appropriately placed.
- 
- 
-            """,
+in your responce you should have only ONE sql query.
+""",
             llm_config=self.gpt_config,
         )
-
+ 
         self.decomposer_for_scripts = self.script_builder = ConversableAgent(
             name="decomposer_for_scripts",
             description="decomposes tasks",
@@ -238,7 +266,7 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
             llm_config=self.llm_config,
             human_input_mode="NEVER",
             code_execution_config=False,
-            system_message=""" 
+            system_message="""
             You are an expert data scientist who codes in Python.
             Upon decomposers explanation which is inside [INST ], write python script to prepare and show data from the list of dataframes called 'dfs'.
             Assume that variable 'dfs' will be passed in automatically.
@@ -250,7 +278,8 @@ Ensure that the SQL query is clean and efficient, accurately reflecting the user
                               
             Note: avoid creating sample data in the script. Avoid leaving code half-done, avoid expecting me to fill in the code. Provide full
             code that works.
-            NEVER! say plt.gcf() plt.gca() or plt.show() or plt.savefig() or plt.close() NEVER!
+            
+            NEVER say plt.gcf() plt.gca() or plt.show() or plt.savefig() or plt.close() NEVER!
             ALWAYS provide python like this ```python (code here) ```;
             DO NOT assign anything to 'dfs', that list will be automatically passed in, it does not need definition from your side.
  
@@ -313,7 +342,7 @@ df = df
             
             for plots and figures: END code with: df = fig
             
-
+            
         """,
-
+ 
         )

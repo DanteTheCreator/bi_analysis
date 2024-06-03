@@ -2,7 +2,7 @@ import pandas as pd
 from matplotlib.figure import Figure
 import streamlit as st
 from agency import Agency
-from utils import extract_sql, extract_python_code, convert_df_to_arrow_compatible, display_dynamic_sidebar_info, display_sidebar_info, write_report
+from utils import extract_sql, extract_python_code, convert_df_to_arrow_compatible, display_sidebar_info, display_dynamic_sidebar_info
 from database_connection import run_query_new, run_query_old, check_password
 import plotly.express as px
 
@@ -23,6 +23,7 @@ df = None
 
 
 def get_data(message):
+<<<<<<< HEAD
     decomposition = agency.user_proxy.initiate_chat(
         recipient=agency.decomposer_for_queries,
         message=message,
@@ -42,6 +43,27 @@ def get_data(message):
             st.session_state['messages'].append(
                 {'role': 'assistant', 'contonet': "No data found from SQL query."})
 
+=======
+    with st.spinner('Fetching data...'):
+        decomposition = agency.user_proxy.initiate_chat(
+            recipient=agency.decomposer_for_queries,
+            message=message,
+            max_turns=1,
+        )
+        query = agency.user_proxy.initiate_chat(
+            recipient=agency.query_builder,
+            message=decomposition.summary,
+            max_turns=1,
+        )
+        sql_query = extract_sql(query.summary)
+        if sql_query:
+            query_result = run_query_new(sql_query)
+            if query_result is not None:
+                st.session_state['dataframes'].append(query_result)
+            else:
+                st.session_state['messages'].append(
+                    {'role': 'assistant', 'contonet': "No data found from SQL query."})
+>>>>>>> a3508c5 (test phase)
 
 
 if check_password():
