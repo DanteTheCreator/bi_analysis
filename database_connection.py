@@ -95,11 +95,7 @@ def check_password():
 def run_query_new(query):
      # Configure the connection parameters
     config = {
-        'host': '10.0.55.236',
-        'port': '8123',  # default ClickHouse port
-        'username': 'gpt_user_limited',
-        'password': '$stal1n4761',
-        'database': 'default'
+       
     }
 
     try:
