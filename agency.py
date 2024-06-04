@@ -72,6 +72,20 @@ class Agency:
             llm_config=self.gpt_config,
         )
 
+        self.python_talker = ConversableAgent(
+            name="talker",
+            human_input_mode='NEVER',
+            system_message="""
+            You are a part of an application that helps non-technical users to interact with
+            databases and get the data they need. Your job is to help user describe what kind of modifications
+            they want on this data. You will ask questions until you are sure you understand the assignment.
+            Then you will precisely and concisely tell the task to decomposer_for_scripts, which will
+            further granuralize the task and explain it in fine detail to the next agent. Your job is to
+            understand the user, and shortly but exactly explain what they want.
+    """,
+            llm_config=self.gpt_config,
+        )
+
         self.decomposer_for_queries = ConversableAgent(
             name="Decomposer",
             human_input_mode='NEVER',

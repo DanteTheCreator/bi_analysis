@@ -15,12 +15,13 @@ if 'fetched' not in st.session_state:
     st.session_state['fetched'] = False
 if 'allow_manipulations' not in st.session_state:
             st.session_state['allow_manipulations'] = False
+if 'python_assignment' not in st.session_state:
+            st.session_state['pytohn_assignment'] = None
 
 
 agency = Agency()
 global_context = globals()
 df = None
-
 
 def get_data(message):
     decomposition = agency.user_proxy.initiate_chat(
@@ -42,8 +43,6 @@ def get_data(message):
             st.session_state['messages'].append(
                 {'role': 'assistant', 'contonet': "No data found from SQL query."})
 
-
-
 if check_password():
     # Accept user input
     if next_prompt := st.chat_input("What is up?"):
@@ -64,10 +63,19 @@ if check_password():
                 st.rerun()
             
         if st.session_state['allow_manipulations']:
+            while st.session_state['python_assignment'] == None:
+                if next_prompt.lower() == 'okay mod it':
+                    st.session_state['python_assignment'] = st.session_state['messages'][-2]
+                else:
+                    message = agency.user_proxy.initiate_chat(recipient=agency.python_talker, max_turns=1, message='/n'.join([
+                                                          f"role: {message['role']} /n content: {message['content']}" for message in st.session_state['messages']])).summary
+                    st.session_state['messages'].append(
+                        {'role': 'assistant', 'content': message})
+                    st.rerun()
             script_instructions = agency.user_proxy.initiate_chat(
                 recipient=agency.decomposer_for_scripts,
                 message=f'''This is dataframes heads list:{[df.head() for df in st.session_state['dataframes']]}
-                Decompose this task please: \n {next_prompt}''',
+                Decompose this task please: \n {st.session_state['python_assignment']}''',
                 max_turns=1).summary
             resulting_python = extract_python_code(agency.user_proxy
                                                 .initiate_chat(
@@ -94,8 +102,10 @@ if check_password():
         else:
             st.chat_message(message['role'], avatar=avatar_dir).write(
                 message['content'])
-    print(st.session_state['dataframes'])
     # Ensure sidebar with initial data is always displayed
+    if st.button('Reset'):
+        st.session_state.clear()
+
     if st.session_state['dataframes'][0].empty == False:
         display_sidebar_info(st.session_state['dataframes'][0])
         display_dynamic_sidebar_info(st.session_state['dataframes'][0])
