@@ -75,13 +75,19 @@ if check_password():
             exec(str(resulting_python), global_context)
 
             df = global_context.get('df')
+            if df['customer_id']:
+                # Ensure the column is of string type
+                df['customer_id'] = df['customer_id'].astype('str')
+
+                # Remove commas from the customer_id column
+                df['customer_id'] = df['customer_id'].str.replace(',', '')
 
             if df is not None:
                 if isinstance(df, pd.DataFrame):
-                    df = convert_df_to_arrow_compatible(df)
                     st.session_state['dataframes'].append(df)
                 st.session_state['messages'].append(
                     {'role': 'assistant', 'content': df})
+                st.rerun()
 
     with col1:
         for message in st.session_state.messages:
@@ -101,6 +107,7 @@ if check_password():
             st.session_state['pytohn_assignment'] = None
             st.rerun()
             
+            
         if st.button('Fetch', use_container_width=True):
             get_data(
                 ''.join([message['content'] for message in st.session_state['messages']]))
@@ -108,6 +115,7 @@ if check_password():
             st.session_state['messages'].append(
                 {"role": "assistant", "content": st.session_state['dataframes'][0]})
             st.session_state['fetched'] = True
+            st.rerun()
 
     if st.session_state['dataframes'][0].empty == False:
         display_sidebar_info(st.session_state['dataframes'][0])

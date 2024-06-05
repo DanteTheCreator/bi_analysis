@@ -50,7 +50,6 @@ def convert_df_to_arrow_compatible(df):
  
 def display_sidebar_info(data):
     with st.sidebar:
-        st.session_state['allow_manipulations'] = st.checkbox('Further Manipulations')
         st.header("Basic Information")
         st.write(f"**Number of entries (rows):** {data.shape[0]}")
         st.write(f"**Number of columns:** {data.shape[1]}")
