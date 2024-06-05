@@ -41,11 +41,16 @@ def run_query(query: str) -> DataFrame:
 
 
 df = run_query('''
-SELECT transaction_id, customer_id, transaction_date, trans_val, balance, reference_object, reference_object_bigint, status
-FROM public.test_transactions_master_aggregated
-WHERE status IN ('Deposit', 'Bet', 'Won')
-ORDER BY transaction_date
-LIMIT 10;
+ SELECT
+    customer_id,
+    COUNT(*) AS transaction_count
+FROM
+    transactions_master
+GROUP BY
+    customer_id
+ORDER BY
+    transaction_count DESC
+LIMIT 10
 ''')
 print(df)
 
