@@ -1,3 +1,4 @@
+from psycopg2 import sql
 import clickhouse_connect
 from sqlalchemy import text, create_engine
 from auth import SimpleAuth
@@ -8,14 +9,15 @@ from datetime import datetime
 
 
 engine = create_engine(
-        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
-    )
+    "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
+)
 
-client = clickhouse_connect.get_client(host='10.4.21.11', 
-                                           port='8123', 
-                                           username='default', 
-                                           password='asdASD123', 
-                                           database='default')
+client = clickhouse_connect.get_client(host='10.4.21.11',
+                                       port='8123',
+                                       username='default',
+                                       password='asdASD123',
+                                       database='default')
+
 
 def add_chat_message(host, port, username, password, database, user_id, session_id, message_content, metadata=None):
     """
@@ -31,7 +33,7 @@ def add_chat_message(host, port, username, password, database, user_id, session_
     :param message_content: String. The content of the message.
     :param metadata: String. Optional JSON string with additional metadata.
     """
-    
+
     # Prepare the query to insert a new message
     query = """
     INSERT INTO chat_messages (message_id, user_id, session_id, timestamp, message_content, metadata)
@@ -48,17 +50,19 @@ def add_chat_message(host, port, username, password, database, user_id, session_
         'metadata': metadata
     })
 
+
 def check_password():
     """Returns `True` if the user had a correct password."""
     auth_system = SimpleAuth(
-    'postgresql://postgres:postgres@10.4.21.11:5432/postgres')
+        'postgresql://postgres:postgres@10.4.21.11:5432/postgres')
+
     def login_form():
         """Form with widgets to collect user information"""
         with st.form("Credentials"):
             st.text_input("Username", key="username")
             st.text_input("Password", type="password", key="password")
             st.form_submit_button("Log in", on_click=password_entered)
- 
+
     def password_entered():
         """Checks whether a password entered by the user is correct."""
         username = st.session_state["username"]
@@ -71,24 +75,18 @@ def check_password():
         else:
             st.session_state["auth"] = False
             st.error("😕 User not known or password incorrect")
- 
+
     # Return True if the username + password is validated.
     if st.session_state.get("auth", False):
         return True
- 
+
     # Show inputs for username + password.
     login_form()
     return False
 
-def run_query_new(query):
-     # Configure the connection parameters
-    config = {
-       
-    }
 
+def run_query_new(query):
     try:
-        # Establish the connection using the config
-        client = clickhouse_connect.get_client(**config)
         # Execute the query and fetch results
         result = client.query(query)
         # Convert the result into a DataFrame
@@ -101,10 +99,11 @@ def run_query_new(query):
         # The connection will automatically close when the client object is deleted or goes out of scope
         print("Connection closed")
 
+
 def run_query_old(query: str):
-    
+
     with engine.connect() as conn:
-        try:    
+        try:
             result = conn.execute(text(query))
             # Fetch the results into a DataFrame
             df = pd.DataFrame(result.fetchall(), columns=result.keys())
@@ -117,9 +116,10 @@ def run_query_old(query: str):
             conn.close()
             print("Success, database connection is closed")
 
+
 def get_full_chat(session_id):
     # Establish a connection to the ClickHouse server
-    
+
     # SQL query to select all messages from a specific chat session
     query = """
     SELECT message_id, user_id, timestamp, message_content, metadata
@@ -130,7 +130,7 @@ def get_full_chat(session_id):
 
     # Execute the query
     result = client.query(query, {'session_id': session_id})
-    
+
     # Collecting results
     messages = []
     for row in result:
@@ -141,20 +141,34 @@ def get_full_chat(session_id):
             'message_content': row['message_content'],
             'metadata': row['metadata']
         })
-    
+
     return messages
 
-def add_temp_table(data):
-    headers = data[0]
-    data = data[1:]
+    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
+    cursor = conn.cursor()
 
-    # Create a temporary table
-    # Define the data types appropriately in the table creation statement.
-    table_creation_query = f"CREATE TEMPORARY TABLE temp_table ({', '.join(f'{header} String' for header in headers)})"
-    client.execute(table_creation_query)
+    # SQL to create a temporary table
+    create_temp_table_sql = """
+    CREATE TEMP TABLE temp_table (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100),
+        age INT
+    );
+    """
 
-    # Insert data into the table
-    insert_query = f"INSERT INTO temp_table VALUES"
-    client.execute(insert_query, data)
+    # Execute the SQL command
+    cursor.execute(create_temp_table_sql)
 
-    print("Data has been inserted into the temporary table.")
+    # Insert data into the temporary table
+    insert_data_sql = "INSERT INTO temp_table (name, age) VALUES (%s, %s);"
+    data_to_insert = [('Alice', 30), ('Bob', 25), ('Charlie', 35)]
+    cursor.executemany(insert_data_sql, data_to_insert)
+
+    # Commit the changes
+    conn.commit()
+
+
+def add_temp_table(df):
+    # Use 'replace' if the temp table might already exist, 'append' if it should just add data
+    df.to_sql('temp_table', engine, if_exists='replace', index=False, method='multi', schema='pg_temp')
+    print(f"Data uploaded successfully to temporary table.")

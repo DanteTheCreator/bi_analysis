@@ -1,6 +1,6 @@
 from autogen import UserProxyAgent, ConversableAgent
 
- 
+
 class Agency:
     def __init__(self,):
         self.llm_config = {
@@ -10,12 +10,12 @@ class Agency:
                     "base_url": "http://10.80.17.130:1234/v1",
                     "api_key": "lm-studio",
                 },
- 
+
             ],
             "cache_seed": None,  # Disable caching.
             "temperature": 1
         }
-        
+
         self.gpt_config = {
             "config_list": [
                 {
@@ -23,12 +23,12 @@ class Agency:
                     "base_url": "https://api.openai.com/v1",
                     "api_key": "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",
                 },
- 
+
             ],
             "cache_seed": None,  # Disable caching.
             "temperature": 1
         }
- 
+
         self.user_proxy = UserProxyAgent(
             name="user_proxy",
             llm_config=False,
@@ -95,7 +95,7 @@ class Agency:
                                 4          Fee
                                 5  Withdrawals
                                 6          Won
-                                7         wwon));       
+                                7         wwon));      
     """,
             llm_config=self.gpt_config,
         )
@@ -105,7 +105,7 @@ class Agency:
             description="builds SQL query",
             human_input_mode='NEVER',
             system_message="""
-          You will recieve a task and focus on **Database Operations**. There will be a detailed plan for building a PostgreSQL query.
+            You will recieve a task and focus on **Database Operations**. There will be a detailed plan for building a PostgreSQL query.
             Given a detailed description of the required data fields, tables, and conditions extracted by the Decomposer, construct SQL queries that accurately retrieve this data from the database. Include:
 
                 1. Selection of relevant fields.
@@ -177,11 +177,10 @@ class Agency:
             FROM public.test_transactions_master_aggregated
             ORDER BY customer_id, transaction_date;```
             Explanation: This query calculates a running total of transaction values for each customer, ordered by the transaction date. It uses a window function (SUM() OVER) which is a powerful tool for performing calculations across sets of rows that are related to the current row. 
-
             """,
                         llm_config=self.gpt_config,
-                    )
- 
+        )
+
         self.decomposer_for_scripts = self.script_builder = ConversableAgent(
             name="decomposer_for_scripts",
             description="decomposes tasks",
@@ -212,7 +211,7 @@ class Agency:
             INST: 1. name of the CHOSEN table (dfs[NUMBER]), 2. name of the CHOSEN column(s), 3. * aggregation(s), * transformation(s), OR visualization(s).
             your instructions go here [INST HERE]
             """)
-        
+
         self.script_builder = ConversableAgent(
             name="script_builder",
             description="builds python script",
@@ -297,5 +296,5 @@ df = df
             
             
         """,
- 
+
         )

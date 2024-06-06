@@ -11,13 +11,15 @@ global_context = globals()
 df = None
 col1, col2 = st.columns([5, 1])
 
+
 def write_python(script_instructions):
     resulting_python = extract_python_code(agency.user_proxy
-                                            .initiate_chat(
-                                                recipient=agency.script_builder,
-                                                message=script_instructions,
-                                                max_turns=1).summary)
+                                           .initiate_chat(
+                                               recipient=agency.script_builder,
+                                               message=script_instructions,
+                                               max_turns=1).summary)
     return str(resulting_python)
+
 
 def get_data(message):
     decomposition = agency.user_proxy.initiate_chat(
@@ -37,7 +39,7 @@ def get_data(message):
             st.session_state['dataframes'].append(query_result)
         else:
             st.session_state['messages'].append(
-                {'role': 'assistant', 'contonet': "No data found from SQL query."})
+                {'role': 'assistant', 'content': "No data found from SQL query."})
 
 
 if check_password():
@@ -53,13 +55,13 @@ if check_password():
         st.session_state['pytohn_assignment'] = None
     if 'uploaded_file' not in st.session_state:
         st.session_state['uploaded_file'] = None
-        
+
     if next_prompt := st.chat_input("What is up?"):
         st.session_state['messages'].append(
             {'role': 'user', 'content': next_prompt})
         while not st.session_state['fetched']:
-            message = agency.user_proxy.initiate_chat(recipient=agency.talker, max_turns=1, message='/n'.join([
-                f"role: {message['role']} /n content: {message['content']}" for message in st.session_state['messages']])).summary
+            message = agency.user_proxy.initiate_chat(recipient=agency.talker, max_turns=1, message='\n'.join([
+                f"""role: {message['role']} \n content: {message['content']}""" for message in st.session_state['messages']])).summary
             st.session_state['messages'].append(
                 {'role': 'assistant', 'content': message})
             st.rerun()
@@ -70,8 +72,7 @@ if check_password():
                 message=f'''This is dataframes heads list:{[df.head() for df in st.session_state['dataframes']]}
                     Decompose this task please: \n {next_prompt}''',
                 max_turns=1).summary
-            
-            
+
             # * Run python code
             while True:
                 resulting_python = write_python(script_instructions)
@@ -82,9 +83,10 @@ if check_password():
                     df = global_context.get('df')
                     break
                 else:
-                    script_instructions = f'{resulting_python} had the following error: {error}; Please provide corrected code'
-                    
-            if not df['customer_id'].empty():
+                    script_instructions = f'''{resulting_python} had the following error: {
+                        error}; Please provide corrected code'''
+
+            if not df['customer_id'].empty:
                 # Ensure the column is of string type
                 df['customer_id'] = df['customer_id'].astype('str')
 
@@ -115,20 +117,32 @@ if check_password():
             st.session_state['fetched'] = False
             st.session_state['pytohn_assignment'] = None
             st.rerun()
-            
-            
+
         if st.button('Fetch', use_container_width=True):
-            get_data(
-                ''.join([message['content'] for message in st.session_state['messages']]))
+            print(st.session_state['uploaded_file'])
+            if st.session_state['uploaded_file'] is not None and not st.session_state['uploaded_file'].empty:
+                get_data(
+                    f"""Use 'temp_table' in the db, which was created according to:
+                    {st.session_state['uploaded_file'].head()}
+                    and handle the following task:
+                    {''.join([str(message['content']) for message in st.session_state['messages']])}"""
+                )
+            else:
+                get_data(
+                    ''.join([str(message['content']) for message in st.session_state['messages']]))
             st.session_state['dataframes'] = st.session_state['dataframes'][1:]
             st.session_state['messages'].append(
                 {"role": "assistant", "content": st.session_state['dataframes'][0]})
             st.session_state['fetched'] = True
+            st.session_state['uploaded_file']
             st.rerun()
-        if st.button('Upload File', use_container_width=True):
-            st.session_state['uploaded_file'] = pd.DataFrame(st.file_uploader('Choose a file'))
-            add_temp_table(st.session_state['uploaded_file'])
-            
+        with st.form("file_uploader_form"):
+            uploaded_file = st.file_uploader("Upload a file", type=["csv"])
+            submitted = st.form_submit_button("Submit")
+            if submitted:
+                st.session_state['uploaded_file'] = pd.DataFrame(uploaded_file)
+                add_temp_table(st.session_state['uploaded_file'])
+
     if st.session_state['dataframes'][0].empty == False:
         display_sidebar_info(st.session_state['dataframes'][0])
         display_dynamic_sidebar_info(st.session_state['dataframes'][0])

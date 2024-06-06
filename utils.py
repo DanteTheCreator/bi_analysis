@@ -47,7 +47,8 @@ def convert_df_to_arrow_compatible(df):
             df[col] = df[col].astype('float64')
         elif pd.api.types.is_datetime64_any_dtype(df[col]):
             df[col] = df[col].astype('datetime64[ns]')
-
+        elif pd.api.types.is_Int64DType(df[col]):
+            df[col] = df[col].astype('str')
     return df
  
 def display_sidebar_info(data):
