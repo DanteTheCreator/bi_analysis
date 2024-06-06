@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
+import traceback
 
 def extract_sql(response_text):
    # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
@@ -35,7 +36,7 @@ def extract_python_code(response_text):
 def convert_df_to_arrow_compatible(df):
     for col in df.columns:
         if df[col].dtype == 'object':
-            df[col] = df[col].astype('string')
+            df[col] = df[col].astype('str')
         elif pd.api.types.is_categorical_dtype(df[col]):
             df[col] = df[col].astype('string')
         elif pd.api.types.is_bool_dtype(df[col]):
@@ -46,6 +47,7 @@ def convert_df_to_arrow_compatible(df):
             df[col] = df[col].astype('float64')
         elif pd.api.types.is_datetime64_any_dtype(df[col]):
             df[col] = df[col].astype('datetime64[ns]')
+
     return df
  
 def display_sidebar_info(data):
@@ -201,3 +203,10 @@ def write_report(data):
             f.write(f"**Analysis of {col}:**\n")
             f.write(data[col].value_counts().to_string() + "\n\n")
  
+def run_code(code, global_context):
+    try:
+        exec(code, global_context)
+    except Exception as e:
+        error_message = traceback.format_exc()
+        return error_message
+    return None

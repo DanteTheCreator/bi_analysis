@@ -17,18 +17,6 @@ client = clickhouse_connect.get_client(host='10.4.21.11',
                                            password='asdASD123', 
                                            database='default')
 
-
-def execute_sql_from_file(sql_file_path = './create_tables.sql'):
-      # Read SQL file
-    with open(sql_file_path, 'r', encoding='utf-8') as file:
-        sql_commands = file.read().strip().split(';')  # Split by semicolon to get individual commands
-
-    # Execute each command from the file
-    for command in sql_commands:
-        if command.strip():  # Check if command is not empty
-            print(f"Executing SQL command: {command.strip()}")
-            client.command(command.strip())
-
 def add_chat_message(host, port, username, password, database, user_id, session_id, message_content, metadata=None):
     """
     Adds a chat message to the ClickHouse database.
@@ -155,3 +143,18 @@ def get_full_chat(session_id):
         })
     
     return messages
+
+def add_temp_table(data):
+    headers = data[0]
+    data = data[1:]
+
+    # Create a temporary table
+    # Define the data types appropriately in the table creation statement.
+    table_creation_query = f"CREATE TEMPORARY TABLE temp_table ({', '.join(f'{header} String' for header in headers)})"
+    client.execute(table_creation_query)
+
+    # Insert data into the table
+    insert_query = f"INSERT INTO temp_table VALUES"
+    client.execute(insert_query, data)
+
+    print("Data has been inserted into the temporary table.")
