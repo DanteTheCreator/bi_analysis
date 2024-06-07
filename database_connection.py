@@ -1,16 +1,18 @@
 from psycopg2 import sql
 import clickhouse_connect
-from sqlalchemy import text, create_engine
+from sqlalchemy import text, create_engine, Table, MetaData
+from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
 import streamlit as st
 import uuid
 from datetime import datetime
-
+import time
 
 engine = create_engine(
     "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
 )
+connection = engine.connect()
 
 client = clickhouse_connect.get_client(host='10.4.21.11',
                                        port='8123',
@@ -144,31 +146,45 @@ def get_full_chat(session_id):
 
     return messages
 
-    conn = psycopg2.connect(dbname=dbname, user=user, password=password, host=host, port=port)
-    cursor = conn.cursor()
-
-    # SQL to create a temporary table
-    create_temp_table_sql = """
-    CREATE TEMP TABLE temp_table (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(100),
-        age INT
-    );
-    """
-
-    # Execute the SQL command
-    cursor.execute(create_temp_table_sql)
-
-    # Insert data into the temporary table
-    insert_data_sql = "INSERT INTO temp_table (name, age) VALUES (%s, %s);"
-    data_to_insert = [('Alice', 30), ('Bob', 25), ('Charlie', 35)]
-    cursor.executemany(insert_data_sql, data_to_insert)
-
-    # Commit the changes
-    conn.commit()
-
 
 def add_temp_table(df):
-    # Use 'replace' if the temp table might already exist, 'append' if it should just add data
-    df.to_sql('temp_table', engine, if_exists='replace', index=False, method='multi', schema='pg_temp')
-    print(f"Data uploaded successfully to temporary table.")
+    try:
+        # Create temporary table
+        connection.execute(text("""
+            CREATE TEMPORARY TABLE temp_table (
+                id NUMERIC PRIMARY KEY
+            );
+        """))
+        print('------------------- Created TEMPORARY TABLE-----------------------------')
+        # Insert data from DataFrame
+        df.to_sql('temp_table', engine, if_exists='replace', index=False, method='multi')
+        print('------------------- Added DATA -----------------------------')
+
+        # Fetch and print data
+        result = connection.execute(text("SELECT * FROM temp_table;"))
+        print('------------------- Queried DB -----------------------------')
+        print('------------------- ANSWER: -----------------------------')
+        print(result)
+
+        connection.commit()
+    except SQLAlchemyError as e:
+        print(f"An error occurred: {e}")
+
+
+def remove_temp_table():
+    metadata = MetaData()
+    try:
+        # Reflect the table from the database to SQLAlchemy
+        table = Table('temp_table', metadata)
+
+        # Drop the table
+        table.drop(engine)
+        print(f"Table temp_table has been dropped successfully.")
+
+    except SQLAlchemyError as e:
+        print(f"An error occurred: {e}")
+
+    finally:
+        # Close the connection
+        connection.close()  # Commit changes
+

@@ -3,13 +3,13 @@ from matplotlib.figure import Figure
 import streamlit as st
 from agency import Agency
 from utils import extract_sql, extract_python_code, display_sidebar_info, display_dynamic_sidebar_info, run_code
-from database_connection import run_query_old, check_password, add_temp_table
+from database_connection import run_query_old, check_password, add_temp_table, remove_temp_table
 from pandas_llm import Sandbox
 
 agency = Agency()
 global_context = globals()
 df = None
-col1, col2 = st.columns([5, 1])
+container = st.container()
 
 
 def write_python(script_instructions):
@@ -35,6 +35,7 @@ def get_data(message):
     sql_query = extract_sql(query.summary)
     if sql_query:
         query_result = run_query_old(sql_query)
+        print(query_result)
         if query_result is not None:
             st.session_state['dataframes'].append(query_result)
         else:
@@ -53,8 +54,6 @@ if check_password():
         st.session_state['fetched'] = False
     if 'python_assignment' not in st.session_state:
         st.session_state['pytohn_assignment'] = None
-    if 'uploaded_file' not in st.session_state:
-        st.session_state['uploaded_file'] = None
 
     if next_prompt := st.chat_input("What is up?"):
         st.session_state['messages'].append(
@@ -78,7 +77,7 @@ if check_password():
                 resulting_python = write_python(script_instructions)
                 global_context = {
                     'dfs': st.session_state['dataframes'], 'df': None}
-                error = run_code((resulting_python, global_context))
+                error = run_code(resulting_python, global_context)
                 if error is None:
                     df = global_context.get('df')
                     break
@@ -86,7 +85,7 @@ if check_password():
                     script_instructions = f'''{resulting_python} had the following error: {
                         error}; Please provide corrected code'''
 
-            if not df['customer_id'].empty:
+            if isinstance(df, pd.DataFrame) and not df['customer_id'].empty:
                 # Ensure the column is of string type
                 df['customer_id'] = df['customer_id'].astype('str')
 
@@ -100,7 +99,7 @@ if check_password():
                     {'role': 'assistant', 'content': df})
                 st.rerun()
 
-    with col1:
+    with container:
         for message in st.session_state.messages:
             avatar_dir = './svg/ai.svg' if message['role'] == 'assistant' else './svg/user.svg'
             if isinstance(message['content'], Figure):
@@ -109,7 +108,7 @@ if check_password():
             else:
                 st.chat_message(message['role'], avatar=avatar_dir).write(
                     message['content'])
-    with col2:
+
         if st.button('Reset', use_container_width=True):
             st.session_state['dataframes'] = [pd.DataFrame(), ]
             st.session_state['messages'] = [
@@ -119,7 +118,6 @@ if check_password():
             st.rerun()
 
         if st.button('Fetch', use_container_width=True):
-            print(st.session_state['uploaded_file'])
             if st.session_state['uploaded_file'] is not None and not st.session_state['uploaded_file'].empty:
                 get_data(
                     f"""Use 'temp_table' in the db, which was created according to:
@@ -130,17 +128,22 @@ if check_password():
             else:
                 get_data(
                     ''.join([str(message['content']) for message in st.session_state['messages']]))
+                print(st.session_state['dataframes'])
             st.session_state['dataframes'] = st.session_state['dataframes'][1:]
-            st.session_state['messages'].append(
-                {"role": "assistant", "content": st.session_state['dataframes'][0]})
-            st.session_state['fetched'] = True
-            st.session_state['uploaded_file']
+            if len(st.session_state['dataframes']) > 0:
+                st.session_state['messages'].append(
+                    {"role": "assistant", "content": st.session_state['dataframes'][0]})
+                st.session_state['fetched'] = True
+            else:
+                st.session_state['messages'].append(
+                    {"role": "assistant", "content": 'No data with current SQL, please restart the process and explain in more detail, what kind of data you need.'})
             st.rerun()
         with st.form("file_uploader_form"):
             uploaded_file = st.file_uploader("Upload a file", type=["csv"])
+            st.session_state['uploaded_file'] = pd.DataFrame(uploaded_file)
             submitted = st.form_submit_button("Submit")
             if submitted:
-                st.session_state['uploaded_file'] = pd.DataFrame(uploaded_file)
+                # remove_temp_table()
                 add_temp_table(st.session_state['uploaded_file'])
 
     if st.session_state['dataframes'][0].empty == False:

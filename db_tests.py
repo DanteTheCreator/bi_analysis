@@ -70,16 +70,6 @@ def run_query_click(query: str) -> pd.DataFrame:
         print("Database connection is closed")
 
     return pd.DataFrame()  # Return an empty DataFrame in case of exceptions
-df = run_query_click('''
-SELECT
-    tm.customer_id,
-    COUNT(tm.transaction_id) AS transaction_count
-FROM
-    transactions_master tm
-GROUP BY
-    tm.customer_id
-ORDER BY
-    transaction_count DESC
-LIMIT 10
-''')
-print(df)
+
+print(run_query('''SELECT
+    * FROM temp_table'''))
