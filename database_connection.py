@@ -16,9 +16,6 @@ client = clickhouse_connect.get_client(host='10.4.21.11',
 engine = create_engine(
         "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
     )
-connection = engine.connect()
-
-
 def add_chat_message(host, port, username, password, database, user_id, session_id, message_content, metadata=None):
     """
     Adds a chat message to the ClickHouse database.
@@ -189,14 +186,15 @@ def create_sql_table_schema(df: pd.DataFrame, table_name: str = 'filter') -> str
 def add_temp_table(df: pd.DataFrame):
 
     print('------------------- Connecting to the database -----------------------------')
+    with engine.connect() as conn:
     
-    try:
-        run_query_void("DROP TABLE IF EXISTS filter;")
-        # run_query_void(create_sql_table_schema(df))
-        df.to_sql(name = 'filter', con=engine, if_exists='replace', index=False)
-        print('------------------- Added DATA -----------------------------')
+        try:
+            run_query_void("DROP TABLE IF EXISTS filter;")
+            # run_query_void(create_sql_table_schema(df))
+            df.to_sql(name = 'filter', con=engine, if_exists='replace', index=False)
+            print('------------------- Added DATA -----------------------------')
 
-    except SQLAlchemyError as e:
-        print(f"An error occurred: {e}")
-    finally:
-        connection.close()
+        except SQLAlchemyError as e:
+            print(f"An error occurred: {e}")
+        finally:
+            conn.close()

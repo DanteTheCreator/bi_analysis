@@ -34,17 +34,11 @@ def run_query(query: str) -> DataFrame:
 
 
 print(run_query('''SELECT
-    t.transaction_id,
     t.customer_id,
-    t.transaction_date,
-    t.trans_val,
-    t.balance,
-    t.status
+    COUNT(t.transaction_id) AS transaction_count
 FROM
-    public.test_transactions_master_aggregated AS t
-INNER JOIN
-    filter AS f
-ON
-    t.customer_id = f.customer_id
-ORDER BY
-    t.transaction_date DESC;'''))
+    public.test_transactions_master_aggregated t
+JOIN
+    filter f ON t.customer_id = f.customer_id
+GROUP BY
+    t.customer_id'''))
