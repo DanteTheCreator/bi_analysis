@@ -1,24 +1,22 @@
-from psycopg2 import sql
 import clickhouse_connect
-from sqlalchemy import text, create_engine, Table, MetaData
+from sqlalchemy import text, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
 import streamlit as st
 import uuid
 from datetime import datetime
-import time
-
-engine = create_engine(
-    "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
-)
-connection = engine.connect()
 
 client = clickhouse_connect.get_client(host='10.4.21.11',
                                        port='8123',
                                        username='default',
                                        password='asdASD123',
                                        database='default')
+
+engine = create_engine(
+        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
+    )
+connection = engine.connect()
 
 
 def add_chat_message(host, port, username, password, database, user_id, session_id, message_content, metadata=None):
@@ -101,9 +99,19 @@ def run_query_new(query):
         # The connection will automatically close when the client object is deleted or goes out of scope
         print("Connection closed")
 
-
+def run_query_void(query: str):
+    with engine.connect() as conn:
+        try:
+            conn.execute(text(query))
+            # Fetch the results into a DataFrame
+        except Exception as e:
+            print("An error occurred:", e)
+        finally:
+            # Close the connection
+            conn.close()
+            print("Success, database connection is closed")
+            
 def run_query_old(query: str):
-
     with engine.connect() as conn:
         try:
             result = conn.execute(text(query))
@@ -146,45 +154,49 @@ def get_full_chat(session_id):
 
     return messages
 
+def create_sql_table_schema(df: pd.DataFrame, table_name: str = 'filter') -> str:
+    dtype_mapping = {
+        'int64': 'INTEGER',
+        'float64': 'FLOAT',
+        'object': 'TEXT',
+        'bool': 'BOOLEAN',
+        'datetime64[ns]': 'TIMESTAMP',
+        'timedelta64[ns]': 'INTERVAL'
+    }
+    
+    # List to hold column definitions
+    columns = []
+    
+    for col_name, dtype in df.dtypes.items():
+        # Get the SQL type or default to TEXT
+        sql_dtype = dtype_mapping.get(str(dtype), 'TEXT')
+        
+        # Handle spaces and reserved keywords in column names
+        if ' ' in col_name or not col_name.isidentifier():
+            col_name = f'"{col_name}"'
+        
+        # Create column definition
+        columns.append(f"{col_name} {sql_dtype}")
+    
+    # Join all column definitions
+    columns_sql = ",\n  ".join(columns)
+    
+    # Construct the CREATE TABLE SQL statement
+    create_table_sql = f"CREATE TEMP TABLE filter (\n  {columns_sql}\n);"
+    
+    return create_table_sql
 
-def add_temp_table(df):
+def add_temp_table(df: pd.DataFrame):
+
+    print('------------------- Connecting to the database -----------------------------')
+    
     try:
-        # Create temporary table
-        connection.execute(text("""
-            CREATE TEMPORARY TABLE temp_table (
-                id NUMERIC PRIMARY KEY
-            );
-        """))
-        print('------------------- Created TEMPORARY TABLE-----------------------------')
-        # Insert data from DataFrame
-        df.to_sql('temp_table', engine, if_exists='replace', index=False, method='multi')
+        run_query_void("DROP TABLE IF EXISTS filter;")
+        # run_query_void(create_sql_table_schema(df))
+        df.to_sql(name = 'filter', con=engine, if_exists='replace', index=False)
         print('------------------- Added DATA -----------------------------')
 
-        # Fetch and print data
-        result = connection.execute(text("SELECT * FROM temp_table;"))
-        print('------------------- Queried DB -----------------------------')
-        print('------------------- ANSWER: -----------------------------')
-        print(result)
-
-        connection.commit()
     except SQLAlchemyError as e:
         print(f"An error occurred: {e}")
-
-
-def remove_temp_table():
-    metadata = MetaData()
-    try:
-        # Reflect the table from the database to SQLAlchemy
-        table = Table('temp_table', metadata)
-
-        # Drop the table
-        table.drop(engine)
-        print(f"Table temp_table has been dropped successfully.")
-
-    except SQLAlchemyError as e:
-        print(f"An error occurred: {e}")
-
     finally:
-        # Close the connection
-        connection.close()  # Commit changes
-
+        connection.close()
