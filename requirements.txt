@@ -1,7 +1,8 @@
 autogenstudio==0.0.56
 pandas==2.2.1
 sqlalchemy==2.0.29
-passlib
-matplotlib
-plotly
-psycopg2
+passlib==1.7.4
+matplotlib==3.8.4
+plotly==5.22.0
+psycopg2==2.9.9
+streamlit==1.35.0
