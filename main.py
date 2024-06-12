@@ -11,73 +11,76 @@ df = None
 
 if check_password():
     initiate_state()
+    with st.container():
+        render_chat()
+        upload_form()
+    with st.container():
 
-    if next_prompt := st.chat_input("What is up?"):
-        # append what user says
-        st.session_state['messages'].append(
-            {'role': 'user', 'content': next_prompt})
-        
-        
-        #* Talking with 'talker' until user presses fetch button
-        if not st.session_state['fetched']:
-            message = agency.user_proxy.initiate_chat(
-                recipient=agency.talker,
-                max_turns=1,
-                message='\n'.join([
-                    f"""role: {message['role']}
-                        \n content: {message['content']}"""
-                    for message in st.session_state['messages']
-                ])
-            ).summary
+        if next_prompt := st.chat_input("What is up?"):
+            # append what user says
             st.session_state['messages'].append(
-                {'role': 'assistant', 'content': message})
+                {'role': 'user', 'content': next_prompt})
             
             
-        #* when we have fetched data, but user hasn't said what to do with it further (with python)
-        if st.session_state['fetched'] and st.session_state['python_assignment'] is None:
-            script_instructions = agency.user_proxy.initiate_chat(
-                recipient=agency.decomposer_for_scripts,
-                message=f'''This is dataframes heads list:{[df.head() for df in st.session_state['dataframes']]}
-                    Decompose this task please: \n {next_prompt}''',
-                max_turns=1).summary
-            st.session_state['python_assignment'] = script_instructions
-            
-        #* when decomposer gives the instructions, until correct python is produced
-        if st.session_state['python_assignment'] is not None:
-            
-            while True:
-                try:
-                    resulting_python = write_python(
-                        st.session_state['python_assignment'])
-                    global_context = globals()
-                    global_context['dfs'] = st.session_state['dataframes']
-                    run_code(resulting_python, global_context )
-                    df = global_context.get('df')
-                    print(df)
-                    break
+            #* Talking with 'talker' until user presses fetch button
+            if not st.session_state['fetched']:
+                message = agency.user_proxy.initiate_chat(
+                    recipient=agency.talker,
+                    max_turns=1,
+                    message='\n'.join([
+                        f"""role: {message['role']}
+                            \n content: {message['content']}"""
+                        for message in st.session_state['messages']
+                    ])
+                ).summary
+                st.session_state['messages'].append(
+                    {'role': 'assistant', 'content': message})
                 
-                except Exception as e:
-                    print(e)
-                    st.session_state['python_assignment'] = f'''{resulting_python} had the following error: {
-                        e}; Please provide corrected code'''
-            st.session_state['python_assignment'] = None
-        #acive df is present
-        if df is not None:
-            if isinstance(df, pd.DataFrame):
-                st.session_state['dataframes'].append(df)
-            st.session_state['messages'].append(
-                {'role': 'assistant', 'content': df})
-            
+                
+            #* when we have fetched data, but user hasn't said what to do with it further (with python)
+            if st.session_state['fetched'] and st.session_state['python_assignment'] is None:
+                script_instructions = agency.user_proxy.initiate_chat(
+                    recipient=agency.decomposer_for_scripts,
+                    message=f'''This is dataframes heads list:{[df.head() for df in st.session_state['dataframes']]}
+                        Decompose this task please: \n {next_prompt}''',
+                    max_turns=1).summary
+                st.session_state['python_assignment'] = script_instructions
+                
+            #* when decomposer gives the instructions, until correct python is produced
+            if st.session_state['python_assignment'] is not None:
+                
+                while True:
+                    try:
+                        resulting_python = write_python(
+                            st.session_state['python_assignment'])
+                        global_context = globals()
+                        global_context['dfs'] = st.session_state['dataframes']
+                        run_code(resulting_python, global_context )
+                        df = global_context.get('df')
+                        print(df)
+                        break
+                    
+                    except Exception as e:
+                        print(e)
+                        st.session_state['python_assignment'] = f'''{resulting_python} had the following error: {
+                            e}; Please provide corrected code'''
+                st.session_state['python_assignment'] = None
+            #acive df is present
+            if df is not None:
+                if isinstance(df, pd.DataFrame):
+                    st.session_state['dataframes'].append(df)
+                st.session_state['messages'].append(
+                    {'role': 'assistant', 'content': df})
+                
         
-    render_chat()
-    upload_form()
 
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        reset_button()
-    with col2:
-        fetch_button()
+    with st.container():
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            reset_button()
+        with col2:
+            fetch_button()
     
         
     
