@@ -1,64 +1,23 @@
 import pandas as pd
-from matplotlib.figure import Figure
 import streamlit as st
 from agency import Agency
-from utils import extract_sql, extract_python_code, display_sidebar_info, display_dynamic_sidebar_info, run_code
-from database_connection import run_query_old, check_password, add_temp_table
+from utils import write_python, display_sidebar_info, display_dynamic_sidebar_info, run_code, initiate_state
+from database_connection import check_password
 from pandas_llm import Sandbox
+from front_components import fetch_button, upload_form, reset_button, render_chat
 
 agency = Agency()
 df = None
-container = st.container()
-
-
-def write_python(script_instructions: str) -> str:
-    resulting_python = extract_python_code(agency.user_proxy
-                                           .initiate_chat(
-                                               recipient=agency.script_builder,
-                                               message=script_instructions,
-                                               max_turns=1).summary)
-    return str(resulting_python)
-
-
-def get_data(message: str) -> None:
-    decomposition = agency.user_proxy.initiate_chat(
-        recipient=agency.decomposer_for_queries,
-        message=message,
-        max_turns=1,
-    )
-    query = agency.user_proxy.initiate_chat(
-        recipient=agency.query_builder,
-        message=decomposition.summary,
-        max_turns=1,
-    )
-    sql_query = extract_sql(query.summary)
-    if sql_query:
-        query_result = run_query_old(sql_query)
-        if query_result is not None:
-            st.session_state['dataframes'].append(query_result)
-            st.session_state['messages'].append(
-                {'role': 'assistant', 'content': query_result})
-            st.session_state['fetched'] = True
-        else:
-            st.session_state['messages'].append(
-                {'role': 'assistant', 'content': "No data found from SQL query."})
-
 
 if check_password():
-    if 'dataframes' not in st.session_state:
-        st.session_state['dataframes'] = [pd.DataFrame(), ]
-    if 'messages' not in st.session_state:
-        st.session_state['messages'] = [
-            {"role": "assistant", "content": "How can I help you?"}]
-    if 'fetched' not in st.session_state:
-        st.session_state['fetched'] = False
-    if 'python_assignment' not in st.session_state:
-        st.session_state['python_assignment'] = None
+    initiate_state()
 
     if next_prompt := st.chat_input("What is up?"):
         # append what user says
         st.session_state['messages'].append(
             {'role': 'user', 'content': next_prompt})
+        
+        
         # talkers response
         if not st.session_state['fetched']:
             message = agency.user_proxy.initiate_chat(
@@ -72,6 +31,8 @@ if check_password():
             ).summary
             st.session_state['messages'].append(
                 {'role': 'assistant', 'content': message})
+            
+            
         # when we have data
         if st.session_state['fetched'] and st.session_state['python_assignment'] is None:
             script_instructions = agency.user_proxy.initiate_chat(
@@ -80,65 +41,46 @@ if check_password():
                     Decompose this task please: \n {next_prompt}''',
                 max_turns=1).summary
             st.session_state['python_assignment'] = script_instructions
+            
+        #when decomposer gives the instructions, until correct python is produced
         if st.session_state['python_assignment'] is not None:
+            
             while True:
-                resulting_python = write_python(
-                    st.session_state['python_assignment'])
-                local_context = {
-                    'dfs': st.session_state['dataframes'], 'df': None}
-                error = run_code(resulting_python, local_context)
-                if error is None:
-                    df = local_context.get('df')
+                try:
+                    resulting_python = write_python(
+                        st.session_state['python_assignment'])
+                    global_context = globals()
+                    global_context['dfs'] = st.session_state['dataframes']
+                    run_code(resulting_python, global_context )
+                    df = global_context.get('df')
+                    print(df)
                     break
-                else:
-                    script_instructions = f'''{resulting_python} had the following error: {
-                        error}; Please provide corrected code'''
-
+                
+                except Exception as e:
+                    print(e)
+                    st.session_state['python_assignment'] = f'''{resulting_python} had the following error: {
+                        e}; Please provide corrected code'''
+        #acive df is present
         if df is not None:
             if isinstance(df, pd.DataFrame):
                 st.session_state['dataframes'].append(df)
             st.session_state['messages'].append(
                 {'role': 'assistant', 'content': df})
-
-    with container:
-        for message in st.session_state['messages']:
-            avatar_dir = './svg/ai.svg' if message['role'] == 'assistant' else './svg/user.svg'
-            if isinstance(message['content'], Figure):
-                st.chat_message(message['role'], avatar=avatar_dir).pyplot(
-                    message['content'])
-            else:
-                st.chat_message(message['role'], avatar=avatar_dir).write(
-                    message['content'])
+            
         
-        with st.form("file_uploader_form"):
-            uploaded_file = st.file_uploader("Upload a file", type=["csv"])
-            submitted = st.form_submit_button("Submit")
+    render_chat()
+    upload_form()
 
-            if uploaded_file:
-                st.session_state['uploaded_file'] = pd.read_csv(uploaded_file)
-                if submitted:
-
-                    add_temp_table(st.session_state['uploaded_file'])
-        if st.button('Reset', use_container_width=True):
-            st.session_state['dataframes'] = [pd.DataFrame(), ]
-            st.session_state['messages'] = [
-                {"role": "assistant", "content": "How can I help you?"}]
-            st.session_state['fetched'] = False
-            st.session_state['python_assignment'] = None
-            st.rerun()
-
-        if st.button('Fetch', use_container_width=True):
-            if 'uploaded_file' in st.session_state and not st.session_state['uploaded_file'].empty:
-                get_data(
-                    f"""Use 'filter' in the db, which was created according to:
-                    {st.session_state['uploaded_file'].head()}
-                    and handle the following task:
-                    {''.join([str(message['content']) for message in st.session_state['messages']])}"""
-                )
-            else:
-                get_data(
-                    ''.join([str(message['content']) for message in st.session_state['messages']]))
-            st.rerun()
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        reset_button()
+    with col2:
+        fetch_button()
+    
+        
+    
     if not st.session_state['dataframes'][0].empty:
         display_sidebar_info(st.session_state['dataframes'][0])
         display_dynamic_sidebar_info(st.session_state['dataframes'][0])
+

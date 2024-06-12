@@ -4,6 +4,10 @@ import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
 import traceback
+from agency import Agency
+from database_connection import run_query_old
+
+agency = Agency()
 
 def extract_sql(response_text):
    # Define a pattern that matches SQL queries enclosed in ```sql ``` format.
@@ -211,3 +215,46 @@ def run_code(code, global_context):
         error_message = traceback.format_exc()
         return error_message
     return None
+
+def get_data(message: str) -> None:
+    
+    decomposition = agency.user_proxy.initiate_chat(
+        recipient=agency.decomposer_for_queries,
+        message=message,
+        max_turns=1,
+    )
+    query = agency.user_proxy.initiate_chat(
+        recipient=agency.query_builder,
+        message=decomposition.summary,
+        max_turns=1,
+    )
+    sql_query = extract_sql(query.summary)
+    if sql_query:
+        query_result = run_query_old(sql_query)
+        if query_result is not None:
+            st.session_state['dataframes'].append(query_result)
+            st.session_state['messages'].append(
+                {'role': 'assistant', 'content': query_result})
+            st.session_state['fetched'] = True
+        else:
+            st.session_state['messages'].append(
+                {'role': 'assistant', 'content': "No data found from SQL query."})
+
+def write_python(script_instructions: str) -> str:
+    resulting_python = extract_python_code(agency.user_proxy
+                                           .initiate_chat(
+                                               recipient=agency.script_builder,
+                                               message=script_instructions,
+                                               max_turns=1).summary)
+    return str(resulting_python)
+
+def initiate_state():
+    if 'dataframes' not in st.session_state:
+        st.session_state['dataframes'] = [pd.DataFrame(), ]
+    if 'messages' not in st.session_state:
+        st.session_state['messages'] = [
+            {"role": "assistant", "content": "How can I help you?"}]
+    if 'fetched' not in st.session_state:
+        st.session_state['fetched'] = False
+    if 'python_assignment' not in st.session_state:
+        st.session_state['python_assignment'] = None
