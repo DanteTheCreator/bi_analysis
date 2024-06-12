@@ -267,25 +267,25 @@ class Agency:
             ```
             another example for dataframes:
             ```
-python
-import pandas as pd
- 
-# Initialize global dfs, df variables
-global dfs, df
- 
-# Choose the first dataframe from the list 'dfs'
-df = dfs[0]
- 
-# Define the transformation needed: Create a new column 'NGR' by subtracting 'total_won's from 'total_bets'
-df['NGR'] = df['total_bets'] - df['total_wons']
- 
-df = df
-```
+            python
+            import pandas as pd
+            
+            # Initialize global dfs, df variables
+            global dfs, df
+            
+            # Choose the first dataframe from the list 'dfs'
+            df = dfs[0]
+            
+            # Define the transformation needed: Create a new column 'NGR' by subtracting 'total_won's from 'total_bets'
+            df['NGR'] = df['total_bets'] - df['total_wons']
+            
+            df = df
+            ```
             ALWAYS follow instructions from decomposer.
-            ALWAYS understand very well whether final output should be a dataframe or a figure.
-            NEVER write return df, avoid returning anything, NEVER use print, Instead you will apply it to df.
+            ALWAYS try to correctly deduce whether final output should be a dataframe or a figure.
+            NEVER return df, avoid returning anything, NEVER use print, Instead you will apply it to df.
             NEVER plt.show()
-            ALWAYS output ONLY ONE figure or dataframe.
+            Last line should always ALWAYS be: 'df = df' or 'df = fig'
             IF asked: ALWAYS construct a complete matplotlib Figure, which should have transparent background
             with green figures and white text.
             The object that would be  returned by this function, just assign it to df;

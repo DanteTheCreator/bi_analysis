@@ -18,7 +18,7 @@ if check_password():
             {'role': 'user', 'content': next_prompt})
         
         
-        # talkers response
+        #* Talking with 'talker' until user presses fetch button
         if not st.session_state['fetched']:
             message = agency.user_proxy.initiate_chat(
                 recipient=agency.talker,
@@ -33,7 +33,7 @@ if check_password():
                 {'role': 'assistant', 'content': message})
             
             
-        # when we have data
+        #* when we have fetched data, but user hasn't said what to do with it further (with python)
         if st.session_state['fetched'] and st.session_state['python_assignment'] is None:
             script_instructions = agency.user_proxy.initiate_chat(
                 recipient=agency.decomposer_for_scripts,
@@ -42,7 +42,7 @@ if check_password():
                 max_turns=1).summary
             st.session_state['python_assignment'] = script_instructions
             
-        #when decomposer gives the instructions, until correct python is produced
+        #* when decomposer gives the instructions, until correct python is produced
         if st.session_state['python_assignment'] is not None:
             
             while True:
@@ -60,6 +60,7 @@ if check_password():
                     print(e)
                     st.session_state['python_assignment'] = f'''{resulting_python} had the following error: {
                         e}; Please provide corrected code'''
+            st.session_state['python_assignment'] = None
         #acive df is present
         if df is not None:
             if isinstance(df, pd.DataFrame):
