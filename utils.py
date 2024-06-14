@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import traceback
 from agency import Agency
-from database_connection import run_query_old
+from database_connection import run_query_old, run_query_new
 
 agency = Agency()
 

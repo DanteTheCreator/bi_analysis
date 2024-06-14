@@ -14,7 +14,7 @@ client = clickhouse_connect.get_client(host='10.4.21.11',
                                        database='default')
 
 engine = create_engine(
-        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgre"
+        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
     )
 
 clickhouse_engine =  create_engine(

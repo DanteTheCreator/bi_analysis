@@ -33,12 +33,7 @@ def run_query(query: str) -> DataFrame:
         print("Success, database connection is closed")
 
 
-print(run_query('''SELECT
-    t.customer_id,
-    COUNT(t.transaction_id) AS transaction_count
-FROM
-    public.test_transactions_master_aggregated t
-JOIN
-    filter f ON t.customer_id = f.customer_id
-GROUP BY
-    t.customer_id'''))
+print(run_query('''SELECT customer_id, transaction_date, trans_val
+                        FROM public.test_transactions_master_aggregated
+                            LIMIT 10;
+    '''))
