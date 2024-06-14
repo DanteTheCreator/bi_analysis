@@ -4,8 +4,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
 import streamlit as st
-import uuid
-from datetime import datetime
 
 client = clickhouse_connect.get_client(host='10.4.21.11',
                                        port='8123',

@@ -21,7 +21,6 @@ if check_password():
             st.session_state['messages'].append(
                 {'role': 'user', 'content': next_prompt})
             
-            
             #* Talking with 'talker' until user presses fetch button
             if not st.session_state['fetched']:
                 message = agency.user_proxy.initiate_chat(
@@ -71,8 +70,7 @@ if check_password():
                     st.session_state['dataframes'].append(df)
                 st.session_state['messages'].append(
                     {'role': 'assistant', 'content': df})
-                
-        
+            st.rerun()
 
     with st.container():
         col1, col2 = st.columns(2)
