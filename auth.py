@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, Column, String
 from sqlalchemy.orm import sessionmaker
 from passlib.context import CryptContext
 from sqlalchemy.orm import declarative_base
+import streamlit as st
+
 Base = declarative_base()
 
 
@@ -33,6 +35,7 @@ class SimpleAuth:
                 User.username == username).first()
             if user is None:
                 return False
+            st.session_state['username'] = username
             return self.pwd_context.verify(password, user.hashed_password)
         finally:
             session.close()

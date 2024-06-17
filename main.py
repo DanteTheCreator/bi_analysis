@@ -2,15 +2,20 @@ import pandas as pd
 import streamlit as st
 from agency import Agency
 from utils import write_python, display_sidebar_info, display_dynamic_sidebar_info, run_code, initiate_state
-from database_connection import check_password
+from database_connection import check_password, load_from_clickhouse, run_shortcut
 from pandas_llm import Sandbox
-from front_components import fetch_button, upload_form, reset_button, render_chat
+from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
 
 agency = Agency()
 df = None
 
 if check_password():
     initiate_state()
+    if not st.session_state['fetched']:
+        data = load_from_clickhouse()
+        with st.sidebar():
+            for row in data:
+                st.button(row['Title'], row['prompt'], on_click= run_shortcut(row['query']))
     with st.container():
         render_chat()
         upload_form()
@@ -37,7 +42,7 @@ if check_password():
                 
                 
             #* when we have fetched data, but user hasn't said what to do with it further (with python)
-            if st.session_state['fetched'] and st.session_state['python_assignment'] is None:
+            if st.session_state['fetched'] and (st.session_state['python_assignment'] is None):
                 script_instructions = agency.user_proxy.initiate_chat(
                     recipient=agency.decomposer_for_scripts,
                     message=f'''This is dataframes heads list:{[df.head() for df in st.session_state['dataframes']]}
@@ -73,12 +78,14 @@ if check_password():
             st.rerun()
 
     with st.container():
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             reset_button()
         with col2:
             fetch_button()
+        with col3:
+            save_button()
     
         
     

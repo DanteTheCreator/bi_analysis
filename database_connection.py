@@ -1,9 +1,10 @@
 import clickhouse_connect
-from sqlalchemy import text, create_engine
+from sqlalchemy import MetaData, Table, select, text, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
 import streamlit as st
+from sqlalchemy.orm import sessionmaker
 
 client = clickhouse_connect.get_client(host='10.4.21.11',
                                        port='8123',
@@ -120,3 +121,62 @@ def add_temp_table_clickhouse(df:pd.DataFrame):
             print(f"An error occurred: {e}")
         finally:
             conn.close()
+            
+def insert_into_clickhouse(uid, prompt, title, query):
+    # Create an engine and a metadata object
+    metadata = MetaData(bind=engine)
+    
+    # Reflect the existing table
+    table = Table('shortcuts', metadata, autoload_with=engine)
+    
+    # Create a session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    # Define the insertion data
+    insert_data = {'uid': uid, 'prompt': prompt, 'title': title, 'query': query}
+    
+    try:
+        # Insert the data
+        session.execute(table.insert().values(insert_data))
+        session.commit()
+    except Exception as e:
+        session.rollback()
+        print(f"An error occurred: {e}")
+    finally:
+        session.close()
+        
+def load_from_clickhouse(table_name='shortcuts'):
+    # Create an engine and a metadata object
+    metadata = MetaData(bind=engine)
+    
+    # Reflect the existing table
+    table = Table(table_name, metadata, autoload_with=engine)
+    
+    # Create a session
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    
+    try:
+        # Query the table
+        query = select([table])
+        result = session.execute(query)
+        
+        # Fetch all results
+        data = result.fetchall()
+        return data
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+    finally:
+        session.close()
+        
+def run_shortcut(query):
+    data = run_query_new(query)
+    
+    st.session_state['dataframes'].append(data)
+    st.session_state['fetched'] = True
+    st.session_state['python_assignment'] = None
+    st.rerun()
+    
+    

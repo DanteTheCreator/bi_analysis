@@ -229,6 +229,7 @@ def get_data(message: str) -> None:
         max_turns=1,
     )
     sql_query = extract_sql(query.summary)
+    
     if sql_query:
         query_result = run_query_old(sql_query)
         if query_result is not None:
@@ -258,3 +259,8 @@ def initiate_state():
         st.session_state['fetched'] = False
     if 'python_assignment' not in st.session_state:
         st.session_state['python_assignment'] = None
+    if 'prompt' not in st.session_state:
+        st.session_state['prompt'] = None
+    if 'username' not in st.session_state:
+        st.session_state['username'] = None
+    

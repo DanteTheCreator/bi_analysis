@@ -1,5 +1,5 @@
 import streamlit as st
-from database_connection import add_temp_table
+from database_connection import add_temp_table, insert_into_clickhouse
 from matplotlib.figure import Figure
 from utils import get_data
 import pandas as pd
@@ -50,4 +50,13 @@ def fetch_button():
         else:
             get_data(
                 ''.join([str(message['content']) for message in st.session_state['messages']]))
+        st.session_state['fetched'] = True
+        st.rerun()
+        
+def save_button():
+    if st.button('Save',use_container_width=True):
+        try:
+            insert_into_clickhouse()
+        except Exception as e:
+            print('Error: ' +  e)
         st.rerun()
