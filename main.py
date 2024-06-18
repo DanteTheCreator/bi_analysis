@@ -8,14 +8,17 @@ from front_components import fetch_button, upload_form, reset_button, render_cha
 
 agency = Agency()
 df = None
+initiate_state()
 
 if check_password():
-    initiate_state()
     if not st.session_state['fetched']:
         data = load_from_clickhouse()
-        with st.sidebar():
-            for row in data:
-                st.button(row['Title'], row['prompt'], on_click= run_shortcut(row['query']))
+        with st.sidebar:
+            if data is not None:
+                for row in data:
+                    st.button(row['Title'], row['prompt'], on_click= run_shortcut(row['query']))
+            else:
+                st.write("You don't have shortcuts yet. Press Save Button after successful query.")
     with st.container():
         render_chat()
         upload_form()

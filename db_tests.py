@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 import pandas as pd
 
 engine = create_engine(
-        "postgresql://gpt_test_user:dedismtyvneliparoli123@10.0.55.239:5432/postgres"
+         "clickhouse://default:asdASD123@10.4.21.11':8123/default"
     )
     # Connect to the database
 connection = engine.connect()
@@ -33,7 +33,6 @@ def run_query(query: str) -> DataFrame:
         print("Success, database connection is closed")
 
 
-print(run_query('''SELECT customer_id, transaction_date, trans_val
-                        FROM public.test_transactions_master_aggregated
-                            LIMIT 10;
+print(run_query('''EXISTS TABLE default.shortcuts
+
     '''))

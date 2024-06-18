@@ -1,5 +1,5 @@
 import clickhouse_connect
-from sqlalchemy import MetaData, Table, select, text, create_engine
+from sqlalchemy import Column, MetaData, String, Table, select, text, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
@@ -19,6 +19,9 @@ engine = create_engine(
 clickhouse_engine =  create_engine(
         "clickhouse://default:asdASD123@10.4.21.11':8123/default"
     )
+
+metadata = MetaData()
+metadata.reflect(bind=engine)
 
 def check_password():
     """Returns `True` if the user had a correct password."""
@@ -123,9 +126,7 @@ def add_temp_table_clickhouse(df:pd.DataFrame):
             conn.close()
             
 def insert_into_clickhouse(uid, prompt, title, query):
-    # Create an engine and a metadata object
-    metadata = MetaData(bind=engine)
-    
+
     # Reflect the existing table
     table = Table('shortcuts', metadata, autoload_with=engine)
     
@@ -148,7 +149,6 @@ def insert_into_clickhouse(uid, prompt, title, query):
         
 def load_from_clickhouse(table_name='shortcuts'):
     # Create an engine and a metadata object
-    metadata = MetaData(bind=engine)
     
     # Reflect the existing table
     table = Table(table_name, metadata, autoload_with=engine)
@@ -179,4 +179,16 @@ def run_shortcut(query):
     st.session_state['python_assignment'] = None
     st.rerun()
     
+
+# def create_table():
+
+# # Define the shortcuts table schema
+#     shortcuts_table = Table(
+#         'shortcuts', metadata,
+#         Column('id', String, primary_key=True),
+#         Column('prompt', String),
+#         Column('title', String),
+#         Column('query', String)
+#     )
+#     metadata.create_all(engine)
     
