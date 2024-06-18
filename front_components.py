@@ -33,7 +33,7 @@ def upload_form():
 
 
 def reset_button():
-    if st.button('Reset', use_container_width=True):
+    if st.button('Reset',type='secondary', use_container_width=True):
         st.session_state['dataframes'] = [pd.DataFrame(), ]
         st.session_state['messages'] = [
             {"role": "assistant", "content": "How can I help you?"}]
@@ -43,8 +43,8 @@ def reset_button():
 
 
 def fetch_button():
-    if st.button('Fetch', use_container_width=True):
-        st.session_state['prompt'] = st.session_state['messages'][-1]['content']
+    if st.button('Fetch',type='primary', use_container_width=True):
+        st.session_state['prompt'] = st.session_state['messages'][-2]['content']
         if 'uploaded_file' in st.session_state and not st.session_state['uploaded_file'].empty and st.session_state['uploaded_file'] is not None:
             get_data(
                 f"""Use 'filter' in the db, which was created according to:
@@ -60,11 +60,11 @@ def fetch_button():
 
 
 def save_button():
-    if st.session_state['fetched'] == True:
-        if st.button('Save', use_container_width=True):
+    if st.button('Save',type='secondary', use_container_width=True):
+        if st.session_state['fetched'] == True:
             try:
                 insert_into_clickhouse(st.session_state['username'], st.session_state['prompt'],
                                     st.session_state['prompt'][:16], st.session_state['query'])
             except Exception as e:
                 print(f'Error:  {e}')
-    st.rerun()
+        st.rerun()

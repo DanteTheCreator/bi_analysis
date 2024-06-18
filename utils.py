@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import traceback
 from agency import Agency
-from database_connection import run_query_old, run_query_new
+from database_connection import run_query_new
 
 agency = Agency()
 
@@ -56,87 +56,87 @@ def convert_df_to_arrow_compatible(df):
     return df
  
 def display_sidebar_info(data):
-    with st.sidebar:
-        st.header("Basic Information")
-        st.write(f"**Number of entries (rows):** {data.shape[0]}")
-        st.write(f"**Number of columns:** {data.shape[1]}")
-        st.write("**Column Names:**")
-        st.write(", ".join(data.columns.tolist()))
-        st.write("**Data Types:**")
-        st.write(data.dtypes.to_frame().rename(columns={0: 'Type'}))
-        st.write(f"**Memory Usage:** {data.memory_usage(deep=True).sum():,} bytes")
- 
-        st.header("Descriptive Statistics")
-        st.write(data.describe())
- 
-        st.header("Missing Values")
-        st.write(data.isnull().sum())
- 
-        st.header("Data Distribution")
-        numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
-        categorical_columns = data.select_dtypes(include=['object', 'string']).columns
- 
-        for col in numeric_columns:
-            if 'id' in col.lower():
-                continue  # Skip ID columns
-            fig, ax = plt.subplots()
-            sns.histplot(data[col], kde=True, color='#00FF00')
-            ax.set_title(f'Distribution of {col}')
-            ax.set_xlabel(col)
-            ax.set_ylabel('Frequency')
-            st.pyplot(fig)
- 
-        for col in categorical_columns:
-            fig, ax = plt.subplots()
-            sns.countplot(x=data[col], color='#00FF00')
-            ax.set_title(f'Distribution of {col}')
-            ax.set_xlabel(col)
-            ax.set_ylabel('Count')
-            st.pyplot(fig)
- 
-        st.header("Correlation Heatmap")
-        fig, ax = plt.subplots(figsize=(4, 3))
-        numeric_data = data.select_dtypes(include=['float64', 'int64'])
-        corr = numeric_data.corr()
-        sns.heatmap(corr, ax=ax, annot=True, cmap='Greens')
-        ax.set_title('Correlation Heatmap')
+    
+    st.header("Basic Information")
+    st.write(f"**Number of entries (rows):** {data.shape[0]}")
+    st.write(f"**Number of columns:** {data.shape[1]}")
+    st.write("**Column Names:**")
+    st.write(", ".join(data.columns.tolist()))
+    st.write("**Data Types:**")
+    st.write(data.dtypes.to_frame().rename(columns={0: 'Type'}))
+    st.write(f"**Memory Usage:** {data.memory_usage(deep=True).sum():,} bytes")
+
+    st.header("Descriptive Statistics")
+    st.write(data.describe())
+
+    st.header("Missing Values")
+    st.write(data.isnull().sum())
+
+    st.header("Data Distribution")
+    numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
+    categorical_columns = data.select_dtypes(include=['object', 'string']).columns
+
+    for col in numeric_columns:
+        if 'id' in col.lower():
+            continue  # Skip ID columns
+        fig, ax = plt.subplots()
+        sns.histplot(data[col], kde=True, color='#00FF00')
+        ax.set_title(f'Distribution of {col}')
+        ax.set_xlabel(col)
+        ax.set_ylabel('Frequency')
         st.pyplot(fig)
 
+    for col in categorical_columns:
+        fig, ax = plt.subplots()
+        sns.countplot(x=data[col], color='#00FF00')
+        ax.set_title(f'Distribution of {col}')
+        ax.set_xlabel(col)
+        ax.set_ylabel('Count')
+        st.pyplot(fig)
+
+    st.header("Correlation Heatmap")
+    fig, ax = plt.subplots(figsize=(4, 3))
+    numeric_data = data.select_dtypes(include=['float64', 'int64'])
+    corr = numeric_data.corr()
+    sns.heatmap(corr, ax=ax, annot=True, cmap='Greens')
+    ax.set_title('Correlation Heatmap')
+    st.pyplot(fig)
+
 def display_dynamic_sidebar_info(data):
-    with st.sidebar:
-        st.header("Outlier Analysis")
-        numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
- 
-        plt.style.use('dark_background')  # Applying dark theme to all plots
- 
-        for col in numeric_columns:
-            if 'id' in col.lower():
-                continue  # Skip ID columns
+    
+    st.header("Outlier Analysis")
+    numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
+
+    plt.style.use('dark_background')  # Applying dark theme to all plots
+
+    for col in numeric_columns:
+        if 'id' in col.lower():
+            continue  # Skip ID columns
+        fig, ax = plt.subplots()
+        sns.boxplot(x=data[col], color='#00FF00')
+        ax.set_title(f'Box plot of {col}')
+        ax.set_xlabel(col)
+        st.pyplot(fig)
+
+    st.header("Trend Analysis")
+    datetime_columns = data.select_dtypes(include=['datetime64[ns]']).columns
+
+    for col in datetime_columns:
+        fig, ax = plt.subplots()
+        data.set_index(col)[numeric_columns].plot(ax=ax, color='#00FF00')
+        ax.set_title(f'Time Series of {col}')
+        st.pyplot(fig)
+
+    st.header("Comparative Analysis")
+    categorical_columns = data.select_dtypes(include=['object', 'string']).columns
+    for cat_col in categorical_columns:
+        for num_col in numeric_columns:
             fig, ax = plt.subplots()
-            sns.boxplot(x=data[col], color='#00FF00')
-            ax.set_title(f'Box plot of {col}')
-            ax.set_xlabel(col)
+            sns.violinplot(x=data[cat_col], y=data[num_col], color='#00FF00')
+            ax.set_title(f'{num_col} by {cat_col}')
+            ax.set_xlabel(cat_col)
+            ax.set_ylabel(num_col)
             st.pyplot(fig)
- 
-        st.header("Trend Analysis")
-        datetime_columns = data.select_dtypes(include=['datetime64[ns]']).columns
- 
-        for col in datetime_columns:
-            fig, ax = plt.subplots()
-            data.set_index(col)[numeric_columns].plot(ax=ax, color='#00FF00')
-            ax.set_title(f'Time Series of {col}')
-            st.pyplot(fig)
- 
-        st.header("Comparative Analysis")
-        categorical_columns = data.select_dtypes(include=['object', 'string']).columns
-        for cat_col in categorical_columns:
-            for num_col in numeric_columns:
-                fig, ax = plt.subplots()
-                sns.violinplot(x=data[cat_col], y=data[num_col], color='#00FF00')
-                ax.set_title(f'{num_col} by {cat_col}')
-                ax.set_xlabel(cat_col)
-                ax.set_ylabel(num_col)
-                st.pyplot(fig)
 
 def write_report(data):
     with open("data_report.txt", "w") as f:
@@ -231,7 +231,7 @@ def get_data(message: str) -> None:
     sql_query = extract_sql(query.summary)
     st.session_state['query'] = sql_query
     if sql_query:
-        query_result = run_query_old(sql_query)
+        query_result = run_query_new(sql_query)
         if query_result is not None:
             st.session_state['dataframes'].append(query_result)
             st.session_state['messages'].append(

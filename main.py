@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 from agency import Agency
 from utils import write_python, display_sidebar_info, display_dynamic_sidebar_info, run_code, initiate_state
-from database_connection import check_password, load_from_clickhouse, run_shortcut
+from database_connection import check_password, load_from_shortcuts, run_shortcut
 from pandas_llm import Sandbox
 from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
 
@@ -11,14 +11,8 @@ df = None
 initiate_state()
 
 if check_password():
-    if not st.session_state['fetched']:
-        data = load_from_clickhouse()
-        with st.sidebar:
-            if data is not None:
-                for row in data:
-                    st.button(row['Title'], row['prompt'], on_click= run_shortcut(row['query']))
-            else:
-                st.write("You don't have shortcuts yet. Press Save Button after successful query.")
+    data = load_from_shortcuts() or None
+    
     with st.container():
         render_chat()
         upload_form()
@@ -64,7 +58,7 @@ if check_password():
                         global_context['dfs'] = st.session_state['dataframes']
                         run_code(resulting_python, global_context )
                         df = global_context.get('df')
-                        print(df)
+                        print(f'after Python: \n {df}')
                         break
                     
                     except Exception as e:
@@ -81,7 +75,7 @@ if check_password():
             st.rerun()
 
     with st.container():
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns([1,2,1])
         
         with col1:
             reset_button()
@@ -91,8 +85,15 @@ if check_password():
             save_button()
     
         
+    if not st.session_state['fetched']:
+        with st.sidebar:
+            if data is not None:
+                for row in data:
+                    st.button(row[2], row[1], on_click=lambda x=row[-1]: run_shortcut(x))
+    elif st.session_state['dataframes'][0] is not None:
+        with st.sidebar:
+            display_sidebar_info(st.session_state['dataframes'][0])
+            display_dynamic_sidebar_info(st.session_state['dataframes'][0])
     
-    if not st.session_state['dataframes'][0].empty:
-        display_sidebar_info(st.session_state['dataframes'][0])
-        display_dynamic_sidebar_info(st.session_state['dataframes'][0])
 
+    

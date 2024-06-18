@@ -77,7 +77,7 @@ class Agency:
             Avoid providing Specific data retrieval queries needed to extract the data from the database, avoid writing SQL! Provide the instructions for generating such queries (SQL)
             According to this schema:
             
-            public.test_transactions_master_aggregated
+            default.test_transactions_master_aggregated
                             (
                                 column_name                 data_type
                                 0           transaction_id                    bigint
@@ -114,7 +114,7 @@ class Agency:
                 4. Any sorting or grouping operations that are required.
 
             Generate clean and efficient SQL code that is ready to be executed to fetch the needed data from this table:
-            public.test_transactions_master_aggregated
+            default.test_transactions_master_aggregated
                             (
         column_name                 data_type
         0           transaction_id                    bigint
@@ -137,31 +137,31 @@ class Agency:
             Provide single clean sql query in this format ```sql ```. Please write sql between ```sql HERE ```. Avoid giving extra suggestions. Provide pure SQL like in the exmples.
             
             1) ```sql
-            SELECT * FROM public.test_transactions_master_aggregated;```
+            SELECT * FROM default.test_transactions_master_aggregated;```
             Explanation: This query retrieves all columns and all rows from the test_transactions_master_aggregated table. It's the simplest form of a SELECT statement and is used to display the entire content of a table.
             2) ```sql
             SELECT transaction_id, customer_id, trans_val, balance
-            FROM public.test_transactions_master_aggregated
+            FROM default.test_transactions_master_aggregated
             WHERE balance > 1000.0;```
             Explanation: This query selects specific columns (transaction_id, customer_id, trans_val, balance) from the table, but only where the balance is greater than 1000.0. This is useful for filtering records based on specific criteria.
             3) ```sql
             SELECT customer_id, COUNT(*) AS number_of_transactions, SUM(trans_val) AS total_spent
-            FROM public.test_transactions_master_aggregated
+            FROM default.test_transactions_master_aggregated
             GROUP BY customer_id
             HAVING SUM(trans_val) > 5000;```
             Explanation: This query groups the data by customer_id and calculates two things: the total number of transactions and the total transaction value (trans_val) per customer. The HAVING clause further filters these groups to include only those customers whose total spent is greater than 5000. This is useful for summarizing data by a certain attribute.
             4) ```sql
             SELECT transaction_id, transaction_date, trans_val
-            FROM public.test_transactions_master_aggregated
+            FROM default.test_transactions_master_aggregated
             WHERE transaction_date BETWEEN '2024-01-01' AND '2024-12-31'
             ORDER BY transaction_date DESC;```
             Explanation: This query fetches the transaction ID, date, and value of transactions that occurred within the year 2024. The results are sorted by the transaction_date in descending order, so the most recent transactions appear first. This type of query is useful for analyzing data within a specific time frame.
             5) ```sql
             SELECT transaction_id, trans_val, customer_id
-            FROM public.test_transactions_master_aggregated
+            FROM default.test_transactions_master_aggregated
             WHERE customer_id IN (
                 SELECT customer_id
-                FROM public.test_transactions_master_aggregated
+                FROM default.test_transactions_master_aggregated
                 WHERE trans_val > 1000
                 GROUP BY customer_id
                 HAVING COUNT(transaction_id) > 5
@@ -174,7 +174,7 @@ class Agency:
                 customer_id,
                 trans_val,
                 SUM(trans_val) OVER (PARTITION BY customer_id ORDER BY transaction_date) AS running_total
-            FROM public.test_transactions_master_aggregated
+            FROM default.test_transactions_master_aggregated
             ORDER BY customer_id, transaction_date;```
             Explanation: This query calculates a running total of transaction values for each customer, ordered by the transaction date. It uses a window function (SUM() OVER) which is a powerful tool for performing calculations across sets of rows that are related to the current row. 
             """,
