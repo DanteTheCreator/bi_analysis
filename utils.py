@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import traceback
 from agency import Agency
 from database_connection import run_query_new
+import uuid
 
 agency = Agency()
 
@@ -249,6 +250,21 @@ def write_python(script_instructions: str) -> str:
                                                max_turns=1).summary)
     return str(resulting_python)
 
+
+def generate_unique_id():
+    """
+    Generate a unique identifier using UUID4.
+
+    Returns:
+        str: A unique identifier string.
+    """
+    return str(uuid.uuid4())
+
+# Example usage:
+unique_id = generate_unique_id()
+print(unique_id)
+
+
 def initiate_state():
     if 'dataframes' not in st.session_state:
         st.session_state['dataframes'] = [pd.DataFrame(), ]
@@ -265,5 +281,9 @@ def initiate_state():
         st.session_state['username'] = None
     if 'query' not in st.session_state:
         st.session_state['query'] = None
+    if 'chat_id' not in st.session_state:
+        st.session_state['chat_id'] = None
+    if 'chat_title' not in st.session_state:
+        st.session_state['chat_title'] = None
         
     

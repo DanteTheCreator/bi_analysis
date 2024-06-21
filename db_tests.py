@@ -33,17 +33,5 @@ def run_query(query: str) -> DataFrame:
         print("Success, database connection is closed")
 
 
-print(run_query('''SELECT
-    customer_id,
-    SUM(trans_val) AS total_deposit_amount,
-    MAX(transaction_date) AS last_deposit_date
-FROM
-    default.test_transactions_master_aggregated
-WHERE
-    status = 'Deposit'
-GROUP BY
-    customer_id
-ORDER BY
-    total_deposit_amount DESC
-LIMIT 10
+print(run_query('''Show tables
     '''))

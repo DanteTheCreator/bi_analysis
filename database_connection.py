@@ -1,11 +1,11 @@
-import clickhouse_connect
-from sqlalchemy import VARCHAR, Column, MetaData, String, Table, select, text, create_engine
+
+from sqlalchemy import MetaData, Table, text, create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from auth import SimpleAuth
 import pandas as pd
 import streamlit as st
 from sqlalchemy.orm import sessionmaker
-import uuid
+from datetime import datetime
 
 clickhouse_engine = create_engine(
     "clickhouse://default:asdASD123@10.4.21.11:8123/default"
@@ -140,17 +140,46 @@ def run_shortcut(query):
     st.session_state['fetched'] = True
     st.session_state['python_assignment'] = None
 
+def save_chat_message(chat_id, message, author, timestamp=None):
+    if timestamp is None:
+        timestamp = datetime.utcnow()
+
+    # Convert timestamp to string format for SQL
+    timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+
+    # SQL statement
+    query = f"""
+    INSERT INTO chat_messages (chat_id, message_id, author, timestamp)
+    VALUES ({chat_id}, {message}, '{author}', '{timestamp_str}')
+    """
+
+    # Execute the SQL statement
+    conn = clickhouse_engine.connect()
+    conn.execute(text(query))
+    conn.close()
+
+def save_chat_title(chat_id, title):
+    if timestamp is None:
+        timestamp = datetime.utcnow()
+
+    query = f"""
+    INSERT INTO chat_titles (chat_id, title)
+    VALUES ({chat_id}, {title})
+    """
+
+    # Execute the SQL statement
+    conn = clickhouse_engine.connect()
+    conn.execute(text(query))
+    conn.close()
+
+
 
 def create_clickhouse_table():
     # Create the engine
-    # Define metadata
-    metadata = MetaData()
     query = '''
-    CREATE TABLE IF NOT EXISTS default.shortcuts (
+    CREATE TABLE IF NOT EXISTS default.chat_titles (
     id String,
-    prompt String,
-    title String,
-    query String) 
+    title String) 
     ENGINE = MergeTree()
     ORDER BY id;
 '''
@@ -160,4 +189,3 @@ def create_clickhouse_table():
             print("Table 'shortcuts' created successfully.")
         except SQLAlchemyError as e:
             print(f"An error occurred while creating the table: {e}")
-

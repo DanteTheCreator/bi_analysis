@@ -1,16 +1,19 @@
 import pandas as pd
 import streamlit as st
 from agency import Agency
-from utils import write_python, display_sidebar_info, display_dynamic_sidebar_info, run_code, initiate_state
-from database_connection import check_password, load_from_shortcuts, run_shortcut
+from utils import write_python, run_code, initiate_state, generate_unique_id
+from database_connection import check_password, load_from_shortcuts, run_shortcut, save_chat_message, save_chat_title
 from pandas_llm import Sandbox
 from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
+import datetime
 
 agency = Agency()
 df = None
 initiate_state()
 
 if check_password():
+    if st.session_state['chat_id'] == None:
+        st.session_state['chat_id'] = generate_unique_id()
     data = load_from_shortcuts() or None
     
     with st.container():
@@ -19,10 +22,18 @@ if check_password():
     with st.container():
 
         if next_prompt := st.chat_input("What is up?"):
+            if len(st.session_state['messages']) == 0:
+                message = agency.user_proxy.initiate_chat(
+                    recipient=agency.talker,
+                    max_turns=1,
+                    message=f'Come up with a short title for the prompt: {next_prompt}'
+                ).summary
+                st.session_state['chat_title'] = message
+                save_chat_title(st.session_state['chat_id'], st.session_state['chat_title'])
             # append what user says
             st.session_state['messages'].append(
                 {'role': 'user', 'content': next_prompt})
-            
+            save_chat_message(st.session_state['chat_id'], next_prompt, 'user', datetime.now())
             #* Talking with 'talker' until user presses fetch button
             if not st.session_state['fetched']:
                 message = agency.user_proxy.initiate_chat(
@@ -36,6 +47,7 @@ if check_password():
                 ).summary
                 st.session_state['messages'].append(
                     {'role': 'assistant', 'content': message})
+                save_chat_message(st.session_state['chat_id'], message, 'assistant', datetime.now())
                 
                 
             #* when we have fetched data, but user hasn't said what to do with it further (with python)
@@ -72,6 +84,8 @@ if check_password():
                     st.session_state['dataframes'].append(df)
                 st.session_state['messages'].append(
                     {'role': 'assistant', 'content': df})
+                save_chat_message(st.session_state['chat_id'], df.to_json, 'user', datetime.now())
+                
             st.rerun()
 
     with st.container():
@@ -84,16 +98,10 @@ if check_password():
         with col3:
             save_button()
     
-        
-    if not st.session_state['fetched']:
-        with st.sidebar:
-            if data is not None:
-                for row in data:
-                    st.button(row[2], row[1], on_click=lambda x=row[-1]: run_shortcut(x))
-    elif st.session_state['dataframes'][0] is not None:
-        with st.sidebar:
-            display_sidebar_info(st.session_state['dataframes'][0])
-            display_dynamic_sidebar_info(st.session_state['dataframes'][0])
-    
+    with st.sidebar:
+        if data is not None:
+            for row in data:
+                st.button(row[2], row[1], on_click=lambda x=row[-1]: run_shortcut(x))
+
 
     
