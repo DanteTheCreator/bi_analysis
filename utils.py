@@ -1,5 +1,6 @@
 import re
 import pandas as pd
+from sqlalchemy import text
 import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -259,10 +260,6 @@ def generate_unique_id():
         str: A unique identifier string.
     """
     return str(uuid.uuid4())
-
-# Example usage:
-unique_id = generate_unique_id()
-print(unique_id)
 
 
 def initiate_state():

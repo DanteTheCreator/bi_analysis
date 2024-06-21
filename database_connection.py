@@ -140,52 +140,77 @@ def run_shortcut(query):
     st.session_state['fetched'] = True
     st.session_state['python_assignment'] = None
 
-def save_chat_message(chat_id, message, author, timestamp=None):
+def save_chat_message(chat_id, content, author, timestamp=None):
     if timestamp is None:
-        timestamp = datetime.utcnow()
+        timestamp = datetime.datetime.utcnow()
 
     # Convert timestamp to string format for SQL
     timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
 
-    # SQL statement
-    query = f"""
-    INSERT INTO chat_messages (chat_id, message_id, author, timestamp)
-    VALUES ({chat_id}, {message}, '{author}', '{timestamp_str}')
-    """
+    # SQL statement using parameterized query
+    query = text("""
+    INSERT INTO chat_messages (session_id, user_id, message_content, timestamp)
+    VALUES (:chat_id, :author, :content, :timestamp)
+    """)
 
     # Execute the SQL statement
-    conn = clickhouse_engine.connect()
-    conn.execute(text(query))
-    conn.close()
+    with clickhouse_engine.connect() as conn:
+        conn.execute(query, {
+            'chat_id': chat_id,
+            'author': author,
+            'content': content,
+            'timestamp': timestamp_str
+        })
 
 def save_chat_title(chat_id, title):
-    if timestamp is None:
-        timestamp = datetime.utcnow()
-
-    query = f"""
-    INSERT INTO chat_titles (chat_id, title)
-    VALUES ({chat_id}, {title})
-    """
+    # SQL statement using parameterized query
+    query = text("""
+    INSERT INTO chat_titles (id, title)
+    VALUES (:chat_id, :title)
+    """)
 
     # Execute the SQL statement
-    conn = clickhouse_engine.connect()
-    conn.execute(text(query))
-    conn.close()
+    with clickhouse_engine.connect() as conn:
+        conn.execute(query, {
+            'chat_id': chat_id,
+            'title': title
+        })
 
+def load_from_chat_titles():
+    # SQL query to select all records from the chat_titles table
+    query = text("""
+    SELECT id, title FROM chat_titles
+    """)
 
+    # Execute the query and fetch results
+    with clickhouse_engine.connect() as conn:
+        try:
+            result = conn.execute(query)
+            chat_titles = result.fetchall()
+            return chat_titles
+        except SQLAlchemyError as e:
+            print(f"An error occurred while loading data: {e}")
+            return []
 
 def create_clickhouse_table():
-    # Create the engine
+    # SQL query to create the table
     query = '''
-    CREATE TABLE IF NOT EXISTS default.chat_titles (
-    id String,
-    title String) 
+    CREATE TABLE IF NOT EXISTS default.chat_messages (
+        id String,
+        session_id String,
+        user_id String,
+        message_content String,
+        timestamp DateTime
+    ) 
     ENGINE = MergeTree()
     ORDER BY id;
-'''
+    '''
+    
+    # Execute the query
     with clickhouse_engine.connect() as conn:
         try:
             conn.execute(text(query))
-            print("Table 'shortcuts' created successfully.")
+            print("Table 'chat_messages' created successfully.")
         except SQLAlchemyError as e:
             print(f"An error occurred while creating the table: {e}")
+

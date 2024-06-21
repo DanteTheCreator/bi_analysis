@@ -33,5 +33,6 @@ def run_query(query: str) -> DataFrame:
         print("Success, database connection is closed")
 
 
-print(run_query('''Show tables
+print(run_query('''DESCRIBE chat_titles
+
     '''))
