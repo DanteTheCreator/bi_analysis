@@ -11,7 +11,6 @@ clickhouse_engine = create_engine(
     "clickhouse://default:asdASD123@10.4.21.11:8123/default"
 )
 
-
 def check_password():
     """Returns `True` if the user had a correct password."""
     auth_system = SimpleAuth(
@@ -45,7 +44,6 @@ def check_password():
     login_form()
     return False
 
-
 def run_query_new(query):
     with clickhouse_engine.connect() as conn:
         try:
@@ -60,7 +58,6 @@ def run_query_new(query):
             # Close the connection
             conn.close()
             print("Success, database connection is closed")
-
 
 def run_query_void(query: str):
     with clickhouse_engine.connect() as conn:
@@ -88,7 +85,6 @@ def add_temp_table(df: pd.DataFrame):
         finally:
             conn.close()
 
-
 def insert_into_clickhouse(uid, prompt, title, query):
 
     metadata = MetaData()
@@ -115,7 +111,6 @@ def insert_into_clickhouse(uid, prompt, title, query):
     finally:
         session.close()
 
-
 def load_from_shortcuts(table_name='shortcuts'):
     # Create an engine and a metadata object
     metadata = MetaData()
@@ -130,7 +125,6 @@ def load_from_shortcuts(table_name='shortcuts'):
             return result
         except SQLAlchemyError as e:
             print(f"An error occurred while loading shortcuts: {e}")
-
 
 def run_shortcut(query):
     data = run_query_new(query)
@@ -188,6 +182,30 @@ def load_from_chat_titles():
             result = conn.execute(query)
             chat_titles = result.fetchall()
             return chat_titles
+        except SQLAlchemyError as e:
+            print(f"An error occurred while loading data: {e}")
+            return []
+
+def load_saved_chat(session_id):
+    query = text("""
+    SELECT id, message_content, timestamp FROM chat_messages
+    WHERE session_id = :session_id
+    ORDER BY timestamp
+    """)
+    st.session_state['fetched'] = True
+    st.session_state['python_assignment'] = None
+    st.session_state['messages'] = []
+    # Execute the query and fetch results
+    with clickhouse_engine.connect() as conn:
+        try:
+            result = conn.execute(query,{'session_id':session_id})
+            messages = result.fetchall()
+            print(messages)
+            for index, message in enumerate(messages):
+                st.session_state['messages'].append({'role':'assistant' if index % 2 == 0 else 'user', 'content':message[1]})
+                if isinstance(message[1], pd.DataFrame):
+                    st.session_state['dataframes'][0] = message[1]
+
         except SQLAlchemyError as e:
             print(f"An error occurred while loading data: {e}")
             return []

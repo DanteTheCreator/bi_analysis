@@ -33,6 +33,8 @@ def run_query(query: str) -> DataFrame:
         print("Success, database connection is closed")
 
 
-print(run_query('''DESCRIBE chat_titles
+# print(run_query('''ALTER TABLE default.chat_titles DELETE WHERE id = '795ec474-fcac-4c23-b217-7f2f550ab605'
+#     '''))
 
+print(run_query(''' SELECT * FROM chat_titles
     '''))

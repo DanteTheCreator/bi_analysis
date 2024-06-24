@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 from agency import Agency
 from utils import write_python, run_code, initiate_state, generate_unique_id
-from database_connection import check_password, load_from_shortcuts, run_shortcut, save_chat_message, save_chat_title, load_from_chat_titles
+from database_connection import check_password, load_from_shortcuts, run_shortcut, save_chat_message, save_chat_title, load_from_chat_titles, load_saved_chat
 from pandas_llm import Sandbox
 from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
 import datetime
@@ -106,6 +106,6 @@ if check_password():
             st.divider()
         if saved_chats is not None:
             for row in saved_chats:
-                st.button(row[1], row[0], on_click=lambda x=row[-1]: run_shortcut(x))
+                st.button(row[1], f'KEY - {row[0]}', on_click=lambda x=row[0]: load_saved_chat(x))
 
     
