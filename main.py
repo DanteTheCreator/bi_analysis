@@ -3,26 +3,36 @@ import streamlit as st
 from agency import Agency
 from utils import write_python, run_code, initiate_state, generate_unique_id
 from database_connection import check_password, load_from_shortcuts, run_shortcut, save_chat_message, save_chat_title, load_from_chat_titles, load_saved_chat
-from pandas_llm import Sandbox
+from sandbox import MinimalSandbox
 from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
 import datetime
 
 agency = Agency()
 df = None
+python_sandbox = MinimalSandbox()
 initiate_state()
 
+
+# * check if user is authenticated
 if check_password():
+    # * generate a unique id for the new chat session
+    
     if st.session_state['chat_id'] == None:
         st.session_state['chat_id'] = generate_unique_id()
+    
+    # * Load shortcuts and past chats 
     data = load_from_shortcuts() or None
     saved_chats = load_from_chat_titles() or None
     
+    # * render chat and upload form
     with st.container():
         render_chat()
         upload_form()
+        
+    # * render chat input
     with st.container():
-
         if next_prompt := st.chat_input("What is up?"):
+            
             if len(st.session_state['messages']) < 2:
                 message = agency.user_proxy.initiate_chat(
                     recipient=agency.talker,
@@ -30,11 +40,14 @@ if check_password():
                     message=f'Come up with a short title for the prompt: {next_prompt}'
                 ).summary
                 st.session_state['chat_title'] = message
+                
                 save_chat_title(st.session_state['chat_id'], st.session_state['chat_title'])
-            # append what user says
+                
+            # * append what user says to messages
             st.session_state['messages'].append(
                 {'role': 'user', 'content': next_prompt})
             save_chat_message(st.session_state['chat_id'], next_prompt, 'user', datetime.datetime.now())
+            
             #* Talking with 'talker' until user presses fetch button
             if not st.session_state['fetched']:
                 message = agency.user_proxy.initiate_chat(
@@ -69,7 +82,7 @@ if check_password():
                             st.session_state['python_assignment'])
                         global_context = globals()
                         global_context['dfs'] = st.session_state['dataframes']
-                        run_code(resulting_python, global_context )
+                        python_sandbox.execute(resulting_python, global_context )
                         df = global_context.get('df')
                         print(f'after Python: \n {df}')
                         break
@@ -79,7 +92,7 @@ if check_password():
                         st.session_state['python_assignment'] = f'''{resulting_python} had the following error: {
                             e}; Please provide corrected code'''
                 st.session_state['python_assignment'] = None
-            #acive df is present
+            # * acive df is present
             if df is not None:
                 if isinstance(df, pd.DataFrame):
                     st.session_state['dataframes'].append(df)
@@ -89,6 +102,7 @@ if check_password():
                 
             st.rerun()
 
+    # * Render buttons
     with st.container():
         col1, col2, col3 = st.columns([1,2,1])
         
@@ -98,7 +112,8 @@ if check_password():
             fetch_button()
         with col3:
             save_button()
-    
+            
+    # * Render shortcuts and saved chats in sidebar
     with st.sidebar:
         if data is not None:
             for row in data:

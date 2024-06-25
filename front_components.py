@@ -39,6 +39,7 @@ def reset_button():
             {"role": "assistant", "content": "How can I help you?"}]
         st.session_state['fetched'] = False
         st.session_state['python_assignment'] = None
+        st.session_state['chat_id'] == None
         st.session_state['uploaded_file'] = None
         st.rerun()
 
