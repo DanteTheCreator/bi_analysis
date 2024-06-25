@@ -83,9 +83,9 @@ if check_password():
             if df is not None:
                 if isinstance(df, pd.DataFrame):
                     st.session_state['dataframes'].append(df)
+                    save_chat_message(st.session_state['chat_id'], df.to_json(orient='records'), 'user', datetime.datetime.now())
                 st.session_state['messages'].append(
                     {'role': 'assistant', 'content': df})
-                save_chat_message(st.session_state['chat_id'], df.to_json, 'user', datetime.datetime.now())
                 
             st.rerun()
 
