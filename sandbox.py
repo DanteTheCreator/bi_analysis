@@ -16,12 +16,14 @@ class MinimalSandbox:
         except ImportError:
             pass
 
-    def execute(self, code):
+    def execute(self, code, globals):
         restricted_globals = {"__builtins__": {}}
         restricted_globals.update(self._allowed_imports)
+        restricted_globals.update(globals)
 
         try:
             exec(compile(code, '<string>', 'exec'), restricted_globals)
+            return restricted_globals.get('df')
         except SyntaxError as e:
             return f"Syntax error in code: {e}"
 

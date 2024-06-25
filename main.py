@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 from agency import Agency
-from utils import write_python, run_code, initiate_state, generate_unique_id
+from utils import write_python, initiate_state, generate_unique_id
 from database_connection import check_password, load_from_shortcuts, run_shortcut, save_chat_message, save_chat_title, load_from_chat_titles, load_saved_chat
 from sandbox import MinimalSandbox
 from front_components import fetch_button, upload_form, reset_button, render_chat, save_button
@@ -82,8 +82,7 @@ if check_password():
                             st.session_state['python_assignment'])
                         global_context = globals()
                         global_context['dfs'] = st.session_state['dataframes']
-                        python_sandbox.execute(resulting_python, global_context )
-                        df = global_context.get('df')
+                        df = python_sandbox.execute(resulting_python, global_context )
                         print(f'after Python: \n {df}')
                         break
                     
